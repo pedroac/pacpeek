@@ -1,0 +1,168 @@
+# Italian translations for pacpeek.
+# This file is distributed under the same license as the pacpeek package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: pacpeek\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-10 04:40+0000\n"
+"PO-Revision-Date: 2026-11-10 02:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: Italian\n"
+"Language: it\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/display.c
+#, c-format
+msgid "pacpeek: monitor \"%s\" not found; available:"
+msgstr "pacpeek: monitor «%s» non trovato; disponibili:"
+
+#: src/main.c
+msgid ""
+"Usage: pacpeek [OPTION]...\n"
+"Show the time, date and system status in a fullscreen overlay.\n"
+"\n"
+"  -m, --mode MODE        hold (default): close when a key is released\n"
+"                         toggle: close when Esc is pressed\n"
+"                         external: take no keyboard focus; close it from "
+"outside (SIGTERM)\n"
+"  -t, --timeout SECONDS  close automatically after SECONDS\n"
+"  -M, --monitor NAME     show on monitor NAME (e.g. DP-1)\n"
+"  -h, --help             show this help and exit\n"
+"\n"
+"Only one instance runs at a time; SIGTERM or SIGINT also close it.\n"
+msgstr ""
+"Uso: pacpeek [OPZIONE]...\n"
+"Mostra ora, data e stato del sistema in una sovrapposizione a schermo "
+"intero.\n"
+"\n"
+"  -m, --mode MODO        hold (predefinito): si chiude al rilascio di un "
+"tasto\n"
+"                         toggle: si chiude premendo Esc\n"
+"                         external: non prende il focus della tastiera; da "
+"chiudere dall'esterno (SIGTERM)\n"
+"  -t, --timeout SECONDI  si chiude automaticamente dopo SECONDI\n"
+"  -M, --monitor NOME     mostra sul monitor NOME (es. DP-1)\n"
+"  -h, --help             mostra questo aiuto ed esce\n"
+"\n"
+"Viene eseguita una sola istanza alla volta; anche SIGTERM o SIGINT la "
+"chiudono.\n"
+
+#: src/main.c
+#, c-format
+msgid "pacpeek: invalid mode \"%s\" (use hold, toggle or external)\n"
+msgstr "pacpeek: modalità non valida «%s» (usare hold, toggle o external)\n"
+
+#: src/main.c
+#, c-format
+msgid "pacpeek: invalid timeout \"%s\" (seconds, 0 to %d)\n"
+msgstr "pacpeek: timeout non valido «%s» (secondi, da 0 a %d)\n"
+
+#: src/main.c
+#, c-format
+msgid "pacpeek: unexpected argument \"%s\"\n"
+msgstr "pacpeek: argomento imprevisto «%s»\n"
+
+#: src/main.c
+msgid ""
+"pacpeek: could not create the overlay (needs wlr-layer-shell, wp_viewporter "
+"and wp_single_pixel_buffer_v1)\n"
+msgstr ""
+"pacpeek: impossibile creare la sovrapposizione (richiede wlr-layer-shell, "
+"wp_viewporter e wp_single_pixel_buffer_v1)\n"
+
+#: src/render.c
+msgid "pacpeek: no font found; set PACPEEK_FONT to a .ttf/.otf file\n"
+msgstr ""
+"pacpeek: nessun font trovato; impostare PACPEEK_FONT su un file .ttf/.otf\n"
+
+#: src/render.c
+msgid "No notifications"
+msgstr "Nessuna notifica"
+
+#: src/render.c
+#, c-format
+msgid "%d notification"
+msgid_plural "%d notifications"
+msgstr[0] "%d notifica"
+msgstr[1] "%d notifiche"
+
+#: src/render.c
+#, c-format
+msgid "Battery %d%% charging"
+msgstr "Batteria %d%% in carica"
+
+#: src/render.c
+#, c-format
+msgid "Battery %d%%"
+msgstr "Batteria %d%%"
+
+#: src/render.c
+msgid "Offline"
+msgstr "Offline"
+
+#: src/render.c
+msgid "Ethernet  Connected"
+msgstr "Ethernet  Connesso"
+
+#. TRANSLATORS: %s is a network interface name, e.g. wg0.
+#: src/render.c
+#, c-format
+msgid "%s  Connected"
+msgstr "%s  Connesso"
+
+#. TRANSLATORS: %s is the Wi-Fi network name (SSID).
+#: src/render.c
+#, c-format
+msgid "Wi-Fi (%s)"
+msgstr "Wi-Fi (%s)"
+
+#: src/render.c
+msgid "Wi-Fi"
+msgstr "Wi-Fi"
+
+#: src/render.c
+#, c-format
+msgid "RAM %d%%"
+msgstr "RAM %d%%"
+
+#: src/render.c
+#, c-format
+msgid "CPU %d%%"
+msgstr "CPU %d%%"
+
+#: src/render.c
+#, c-format
+msgid "Temp %d°C"
+msgstr "Temp. %d°C"
+
+#: src/render.c
+#, c-format
+msgid "Volume %d%%"
+msgstr "Volume %d%%"
+
+#: src/render.c
+msgid "Volume muted"
+msgstr "Volume disattivato"
+
+#: src/render.c
+#, c-format
+msgid "Mic %d%%"
+msgstr "Microfono %d%%"
+
+#: src/render.c
+msgid "Mic muted"
+msgstr "Microfono disattivato"
+
+#. TRANSLATORS: strftime(3) format for the clock, e.g. "%I:%M %p" for 12-hour time.
+#: src/render.c
+msgid "%H:%M"
+msgstr "%H:%M"
+
+#. TRANSLATORS: strftime(3) date format; reorder freely, e.g. "%A, %-d de %B de %Y".
+#: src/render.c
+msgid "%A, %-d %B %Y"
+msgstr "%A %-d %B %Y"

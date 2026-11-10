@@ -1,0 +1,162 @@
+# Simplified Chinese translations for pacpeek.
+# This file is distributed under the same license as the pacpeek package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: pacpeek\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-10 04:40+0000\n"
+"PO-Revision-Date: 2026-11-10 02:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: Simplified Chinese\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: src/display.c
+#, c-format
+msgid "pacpeek: monitor \"%s\" not found; available:"
+msgstr "pacpeek：未找到显示器“%s”；可用的有："
+
+#: src/main.c
+msgid ""
+"Usage: pacpeek [OPTION]...\n"
+"Show the time, date and system status in a fullscreen overlay.\n"
+"\n"
+"  -m, --mode MODE        hold (default): close when a key is released\n"
+"                         toggle: close when Esc is pressed\n"
+"                         external: take no keyboard focus; close it from "
+"outside (SIGTERM)\n"
+"  -t, --timeout SECONDS  close automatically after SECONDS\n"
+"  -M, --monitor NAME     show on monitor NAME (e.g. DP-1)\n"
+"  -h, --help             show this help and exit\n"
+"\n"
+"Only one instance runs at a time; SIGTERM or SIGINT also close it.\n"
+msgstr ""
+"用法：pacpeek [选项]...\n"
+"在全屏叠层中显示时间、日期和系统状态。\n"
+"\n"
+"  -m, --mode 模式        hold（默认）：松开按键时关闭\n"
+"                         toggle：按下 Esc 时关闭\n"
+"                         external：不获取键盘焦点；由外部关闭(SIGTERM)\n"
+"  -t, --timeout 秒数     经过指定秒数后自动关闭\n"
+"  -M, --monitor 名称     在指定名称的显示器上显示（例如 DP-1）\n"
+"  -h, --help             显示此帮助并退出\n"
+"\n"
+"同一时间只运行一个实例；SIGTERM 或 SIGINT 也会将其关闭。\n"
+
+#: src/main.c
+#, c-format
+msgid "pacpeek: invalid mode \"%s\" (use hold, toggle or external)\n"
+msgstr "pacpeek：无效的模式“%s”（请使用 hold、toggle 或 external）\n"
+
+#: src/main.c
+#, c-format
+msgid "pacpeek: invalid timeout \"%s\" (seconds, 0 to %d)\n"
+msgstr "pacpeek：无效的超时“%s”（秒，0 到 %d）\n"
+
+#: src/main.c
+#, c-format
+msgid "pacpeek: unexpected argument \"%s\"\n"
+msgstr "pacpeek：意外的参数“%s”\n"
+
+#: src/main.c
+msgid ""
+"pacpeek: could not create the overlay (needs wlr-layer-shell, wp_viewporter "
+"and wp_single_pixel_buffer_v1)\n"
+msgstr ""
+"pacpeek：无法创建叠层（需要 wlr-layer-shell、wp_viewporter 和 "
+"wp_single_pixel_buffer_v1）\n"
+
+#: src/render.c
+msgid "pacpeek: no font found; set PACPEEK_FONT to a .ttf/.otf file\n"
+msgstr "pacpeek：未找到字体；请将 PACPEEK_FONT 设置为 .ttf/.otf 文件\n"
+
+#: src/render.c
+msgid "No notifications"
+msgstr "没有通知"
+
+#: src/render.c
+#, c-format
+msgid "%d notification"
+msgid_plural "%d notifications"
+msgstr[0] "%d 条通知"
+
+#: src/render.c
+#, c-format
+msgid "Battery %d%% charging"
+msgstr "电池 %d%%（充电中）"
+
+#: src/render.c
+#, c-format
+msgid "Battery %d%%"
+msgstr "电池 %d%%"
+
+#: src/render.c
+msgid "Offline"
+msgstr "离线"
+
+#: src/render.c
+msgid "Ethernet  Connected"
+msgstr "以太网  已连接"
+
+#. TRANSLATORS: %s is a network interface name, e.g. wg0.
+#: src/render.c
+#, c-format
+msgid "%s  Connected"
+msgstr "%s  已连接"
+
+#. TRANSLATORS: %s is the Wi-Fi network name (SSID).
+#: src/render.c
+#, c-format
+msgid "Wi-Fi (%s)"
+msgstr "Wi-Fi (%s)"
+
+#: src/render.c
+msgid "Wi-Fi"
+msgstr "Wi-Fi"
+
+#: src/render.c
+#, c-format
+msgid "RAM %d%%"
+msgstr "内存 %d%%"
+
+#: src/render.c
+#, c-format
+msgid "CPU %d%%"
+msgstr "CPU %d%%"
+
+#: src/render.c
+#, c-format
+msgid "Temp %d°C"
+msgstr "温度 %d°C"
+
+#: src/render.c
+#, c-format
+msgid "Volume %d%%"
+msgstr "音量 %d%%"
+
+#: src/render.c
+msgid "Volume muted"
+msgstr "音量已静音"
+
+#: src/render.c
+#, c-format
+msgid "Mic %d%%"
+msgstr "麦克风 %d%%"
+
+#: src/render.c
+msgid "Mic muted"
+msgstr "麦克风已静音"
+
+#. TRANSLATORS: strftime(3) format for the clock, e.g. "%I:%M %p" for 12-hour time.
+#: src/render.c
+msgid "%H:%M"
+msgstr "%H:%M"
+
+#. TRANSLATORS: strftime(3) date format; reorder freely, e.g. "%A, %-d de %B de %Y".
+#: src/render.c
+msgid "%A, %-d %B %Y"
+msgstr "%Y年%-m月%-d日 %A"
