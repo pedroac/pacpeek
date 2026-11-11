@@ -84,7 +84,31 @@ static void layer_surface_configure(void *data, struct zwlr_layer_surface_v1 *su
         dpy->width = width;
         dpy->height = height;
         wp_viewport_set_destination(dpy->viewport, width, height);
+
+        // --- Render the background radial gradient glow ---
+        cairo_t *cr_bg = panel_begin(&dpy->background_panel, width, height);
+        if (cr_bg) {
+            double cx = (double)width / 2.0;
+            double cy = (double)height / 2.0;
+            double outer_radius = (width < height ? width : height) * 0.5;
+
+            cairo_pattern_t *rad_grad = cairo_pattern_create_radial(
+                cx, cy, 0.0,
+                cx, cy, outer_radius
+            );
+            // Subtle black glow: opaque in center, fully transparent at edges
+            cairo_pattern_add_color_stop_rgba(rad_grad, 0.0, 0.0, 0.0, 0.0, 1.0);
+            cairo_pattern_add_color_stop_rgba(rad_grad, 1.0, 0.0, 0.0, 0.0, 0.0);
+
+            cairo_set_source(cr_bg, rad_grad);
+            cairo_paint(cr_bg);
+            cairo_pattern_destroy(rad_grad);
+
+            panel_end(&dpy->background_panel, cr_bg, 0, 0);
+        }
+        // --------------------------------------------------
     }
+
     wl_surface_attach(dpy->surface, dpy->background, 0, 0);
     wl_surface_damage_buffer(dpy->surface, 0, 0, INT32_MAX, INT32_MAX);
     wl_surface_commit(dpy->surface);
@@ -220,6 +244,7 @@ Display *display_create(const char *output_name, KeyboardFocus focus,
         ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
     zwlr_layer_surface_v1_set_size(dpy->layer_surface, 0, 0);
     zwlr_layer_surface_v1_set_exclusive_zone(dpy->layer_surface, -1);
+
     /* On-demand focus only exists since layer-shell v4; older compositors get the grab. */
     if (focus == KEYBOARD_ON_DEMAND && dpy->layer_shell_version < 4) focus = KEYBOARD_EXCLUSIVE;
     zwlr_layer_surface_v1_set_keyboard_interactivity(dpy->layer_surface,
@@ -227,6 +252,10 @@ Display *display_create(const char *output_name, KeyboardFocus focus,
         : focus == KEYBOARD_ON_DEMAND ? ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND
                                       : ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
     zwlr_layer_surface_v1_add_listener(dpy->layer_surface, &layer_surface_listener, dpy);
+
+    // --- Initialize background gradient panel first so it sits at the bottom of the stack ---
+    panel_init(&dpy->background_panel, dpy);
+    // --------------------------------------------------------------------------------------
 
     wl_surface_commit(dpy->surface);
 
@@ -242,6 +271,8 @@ Display *display_create(const char *output_name, KeyboardFocus focus,
 
 void display_destroy(Display *dpy) {
     if (!dpy) return;
+
+    panel_finish(&dpy->background_panel); // <-- Clean up background panel
 
     if (dpy->layer_surface) zwlr_layer_surface_v1_destroy(dpy->layer_surface);
     if (dpy->viewport) wp_viewport_destroy(dpy->viewport);
