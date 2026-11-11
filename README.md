@@ -1,7 +1,7 @@
-![Screenshot](./docs/screenshot.png)
-
 # pacpeek
 **Task bars are bloated. Peek the status.**
+
+![Screenshot](./docs/screenshot.png)
 
 A quick hotkey-powered panel to peek at system essentials on demand, without needing a permanent status bar.
 
