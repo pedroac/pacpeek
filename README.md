@@ -25,14 +25,16 @@ make && sudo make install
 Bind it in Hyprland (`hyprland.lua`), then hold the shortcut to peek and let go to close:
 
 ```lua
-hl.bind("SUPER + Z", hl.dsp.exec_cmd("pacpeek --mode hold"))
+hl.bind("SUPER + Control_L", hl.dsp.exec_cmd("pacpeek --mode hold"))
 ```
 
 If you prefer a toggle keybind (press to open, press again to close):
 
 ```lua
-hl.bind("SUPER + Z", hl.dsp.exec_cmd("pacpeek --mode toggle --toggle"))
+hl.bind("SUPER + Control_L", hl.dsp.exec_cmd("pacpeek --mode toggle --toggle"))
 ```
+
+If you follow those examples, make sure to press and hold the SUPER key first, then press Left Ctrl. It won't work if you press Left Ctrl first.
 
 ## Usage
 

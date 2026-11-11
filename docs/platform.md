@@ -12,5 +12,5 @@ pacpeek is Linux only, and it has only been tested on **Arch Linux with Hyprland
 
 ## Known limits
 
-- **No keyboard focus, no close key.** In `hold` and `toggle` mode, if the compositor never gives the overlay keyboard focus (Hyprland does), nothing inside pacpeek can close it. Use `--timeout`, a signal (`pkill -x pacpeek`), `PACPEEK_KEYBOARD=exclusive`, or `external` mode with a release bind.
+- **No keyboard focus, no close key.** In `hold` and `toggle` mode, if the compositor never gives the overlay keyboard focus (Hyprland does), nothing inside pacpeek can close it. If you can't close it, use `--timeout`, a signal (`pkill -x pacpeek`), `PACPEEK_KEYBOARD=exclusive`, or `external` mode with a release bind.
 - **One buffer per text panel.** pacpeek is only verified on Hyprland, which releases shared-memory buffers right after drawing. A compositor that keeps the buffer until it is replaced would stop the clock and status from updating after the first frame, because a panel is never drawn into while the compositor still holds its buffer.

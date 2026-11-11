@@ -6,38 +6,38 @@ pacpeek [--mode hold|toggle|external] [--timeout SECONDS] [--monitor NAME] [--to
 
 ## Options
 
-- `--mode hold` (default): closes on the next key release. Launched from a held shortcut, letting go closes it (a peek). If the keys were already released, it stays open until you press and release any key.
-- `--mode toggle`: stays open until the Esc key is pressed (matched by physical key, so a key remapped to Escape doesn't count).
-- `--mode external`: never takes keyboard focus (`KEYBOARD_INTERACTIVITY_NONE`), so the window you were using keeps it. Nothing inside pacpeek can close it any more, so the compositor must: see [Release-to-close](#release-to-close-external-mode).
-- `--timeout SECONDS`: closes automatically after that long, in any mode.
-- `--monitor NAME`: shows on a specific monitor (e.g. `DP-1`, see `hyprctl monitors`). An unknown name falls back to the compositor's choice.
-- `--toggle` (`-T`): if another instance is already running, send it `SIGTERM` and exit; otherwise open normally. Combine with any `--mode` to get a single keybind that both opens and closes the overlay.
+- `--mode hold` (default): Closes on the next key release. Launched from a held shortcut, letting go closes it (a peek). If the keys were already released, it stays open until you press and release any key.
+- `--mode toggle`: Stays open until the Esc key is pressed (matched by a physical key, so a key remapped to Escape does not count).
+- `--mode external`: Never takes keyboard focus, so the window you were using keeps it. Nothing inside pacpeek can close it, meaning the compositor must handle it: see [Release-to-close](#release-to-close-external-mode).
+- `--timeout SECONDS`: Closes automatically after the specified duration in any mode.
+- `--monitor NAME`: Displays on a specific monitor (e.g., `DP-1`, see `hyprctl monitors`). An unknown name falls back to the compositor's choice.
+- `--toggle` (`-T`): If another instance is already running, sends it `SIGTERM` and exits; otherwise opens normally. Combine with any `--mode` to create a single keybind that both opens and closes the overlay.
 
-`SIGTERM`/`SIGINT` also close it, and only one instance runs at a time (the lock is `pacpeek.lock` in `$XDG_RUNTIME_DIR`, or `/run/user/UID`).
+`SIGTERM` and `SIGINT` also close the application. Only one instance runs at a time.
 
 ## Keyboard focus
 
-The overlay asks for keyboard focus on demand rather than grabbing the keyboard exclusively, so you can still move to another window. It closes as soon as it loses focus, since it could no longer see the key release or Esc. On a compositor that doesn't focus on-demand overlays by itself, set `PACPEEK_KEYBOARD=exclusive`.
+The overlay requests keyboard focus on demand rather than grabbing the keyboard exclusively, allowing you to switch to another window. It closes as soon as it loses focus because it can no longer monitor key releases or the Esc key. On compositors that do not focus on-demand overlays automatically, set `PACPEEK_KEYBOARD=exclusive`.
 
 ## Hyprland binds
 
 Hold the shortcut to peek, or use `--toggle` for a bind that both opens and closes:
 
 ```lua
-hl.bind("SUPER + Z", hl.dsp.exec_cmd("pacpeek"))
-hl.bind("SUPER + SHIFT + Z", hl.dsp.exec_cmd("pacpeek --toggle --mode toggle"))
+hl.bind("SUPER + Control_L", hl.dsp.exec_cmd("pacpeek --toggle --mode hold"))
+hl.bind("SUPER + SHIFT + Control_L", hl.dsp.exec_cmd("pacpeek --toggle --mode toggle"))
 ```
-
-A bind made only of modifiers, such as `"SUPER + CTRL"`, does nothing: the bind needs a real key at the end.
 
 ## Release-to-close (external mode)
 
 In `external` mode a Hyprland key-release bind closes the overlay:
 
 ```lua
-hl.bind("SUPER + Z", hl.dsp.exec_cmd("pacpeek --mode external --timeout 10"))
-hl.bind("SUPER + Z", hl.dsp.exec_cmd("pkill -x pacpeek"), { release = true })
+hl.bind("SUPER + Control_L", hl.dsp.exec_cmd("pacpeek --mode external --timeout 10"))
+hl.bind("SUPER + Control_L", hl.dsp.exec_cmd("pkill -x pacpeek"), { release = true })
 ```
+
+Advantage: This guarantees the layer is not focused and does not interfere with the windows behind it.
 
 Notes:
 
