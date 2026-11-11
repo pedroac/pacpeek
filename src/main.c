@@ -29,6 +29,7 @@ typedef struct {
     Mode mode;
     double timeout_s;
     const char *monitor;
+    bool toggle; /* if another instance is running, send it SIGTERM and exit */
 } Options;
 
 static Options options = { .mode = MODE_HOLD };
@@ -59,6 +60,9 @@ static void usage(FILE *out) {
             "                         external: take no keyboard focus; close it from outside (SIGTERM)\n"
             "  -t, --timeout SECONDS  close automatically after SECONDS\n"
             "  -M, --monitor NAME     show on monitor NAME (e.g. DP-1)\n"
+            "  -T, --toggle           if already running, close the existing instance and exit;\n"
+            "                         otherwise open normally (useful for a single keybind\n"
+            "                         that both opens and closes the overlay)\n"
             "  -h, --help             show this help and exit\n"
             "\n"
             "Only one instance runs at a time; SIGTERM or SIGINT also close it.\n"), out);
@@ -66,15 +70,16 @@ static void usage(FILE *out) {
 
 static bool parse_options(int argc, char **argv) {
     static const struct option longopts[] = {
-        { "mode", required_argument, NULL, 'm' },
+        { "mode",    required_argument, NULL, 'm' },
         { "timeout", required_argument, NULL, 't' },
         { "monitor", required_argument, NULL, 'M' },
-        { "help", no_argument, NULL, 'h' },
+        { "toggle",  no_argument,       NULL, 'T' },
+        { "help",    no_argument,       NULL, 'h' },
         { NULL, 0, NULL, 0 },
     };
 
     int c;
-    while ((c = getopt_long(argc, argv, "m:t:M:h", longopts, NULL)) != -1) {
+    while ((c = getopt_long(argc, argv, "m:t:M:Th", longopts, NULL)) != -1) {
         switch (c) {
         case 'm':
             if (strcmp(optarg, "hold") == 0) options.mode = MODE_HOLD;
@@ -99,6 +104,9 @@ static bool parse_options(int argc, char **argv) {
         case 'M':
             options.monitor = optarg;
             break;
+        case 'T':
+            options.toggle = true;
+            break;
         case 'h':
             usage(stdout);
             exit(0);
@@ -116,8 +124,9 @@ static bool parse_options(int argc, char **argv) {
 }
 
 /* The lock lives in the user's private runtime directory, never a shared one like /tmp,
- * so no other user can hold it. If it can't be used, pacpeek simply runs unlocked. */
-static bool acquire_single_instance_lock(void) {
+ * so no other user can hold it. If it can't be used, pacpeek simply runs unlocked.
+ * The lock file also stores the running instance's PID so --toggle can target it. */
+static bool acquire_single_instance_lock(bool toggle) {
     char dir[64], path[256];
     const char *runtime = getenv("XDG_RUNTIME_DIR");
     if (!runtime || !*runtime) {
@@ -134,12 +143,38 @@ static bool acquire_single_instance_lock(void) {
         close(fd);
         return true;
     }
+
     /* Keep fd open for the process lifetime: flock(2) advisory locks are released when
      * all fds referencing the open-file-description are closed, so we must not let it
      * go out of scope. A static is enough — only one lock is ever acquired. */
     static int lock_fd = -1;
     lock_fd = fd;
-    return flock(lock_fd, LOCK_EX | LOCK_NB) == 0;
+
+    if (flock(lock_fd, LOCK_EX | LOCK_NB) == 0) {
+        /* We hold the lock. Write our PID so a future --toggle invocation can find us. */
+        if (ftruncate(lock_fd, 0) < 0) {
+            /* Handle or suppress truncation failure if desired, but checking silences the warning */
+        }
+        dprintf(lock_fd, "%d\n", (int)getpid());
+        return true;
+    }
+
+    /* Another instance holds the lock. */
+    if (toggle) {
+        /* Read the PID from the lock file and send SIGTERM to that instance.
+         * If the process already exited (ESRCH), kill() fails silently — that's fine. */
+        pid_t pid = 0;
+        FILE *pf = fopen(path, "r");
+        if (pf) {
+            if (fscanf(pf, "%d", (int *)&pid) != 1) {
+                pid = 0; // Handled / checked return value
+            }
+            fclose(pf);
+        }
+        if (pid > 1) kill(pid, SIGTERM);
+    }
+    close(fd);
+    return false;
 }
 
 static long long now_ms(void) {
@@ -204,7 +239,7 @@ int main(int argc, char **argv) {
 #endif
 
     if (!parse_options(argc, argv)) return 2;
-    if (!acquire_single_instance_lock()) return 0;
+    if (!acquire_single_instance_lock(options.toggle)) return 0;
 
     struct sigaction sa = { .sa_handler = on_signal };
     sigaction(SIGINT, &sa, NULL);

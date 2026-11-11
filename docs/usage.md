@@ -1,7 +1,7 @@
 # Usage
 
 ```
-pacpeek [--mode hold|toggle|external] [--timeout SECONDS] [--monitor NAME] [--help]
+pacpeek [--mode hold|toggle|external] [--timeout SECONDS] [--monitor NAME] [--toggle] [--help]
 ```
 
 ## Options
@@ -11,6 +11,7 @@ pacpeek [--mode hold|toggle|external] [--timeout SECONDS] [--monitor NAME] [--he
 - `--mode external`: never takes keyboard focus (`KEYBOARD_INTERACTIVITY_NONE`), so the window you were using keeps it. Nothing inside pacpeek can close it any more, so the compositor must: see [Release-to-close](#release-to-close-external-mode).
 - `--timeout SECONDS`: closes automatically after that long, in any mode.
 - `--monitor NAME`: shows on a specific monitor (e.g. `DP-1`, see `hyprctl monitors`). An unknown name falls back to the compositor's choice.
+- `--toggle` (`-T`): if another instance is already running, send it `SIGTERM` and exit; otherwise open normally. Combine with any `--mode` to get a single keybind that both opens and closes the overlay.
 
 `SIGTERM`/`SIGINT` also close it, and only one instance runs at a time (the lock is `pacpeek.lock` in `$XDG_RUNTIME_DIR`, or `/run/user/UID`).
 
@@ -20,11 +21,11 @@ The overlay asks for keyboard focus on demand rather than grabbing the keyboard 
 
 ## Hyprland binds
 
-Hold the shortcut to peek, or use toggle mode (press again, or Esc, to close):
+Hold the shortcut to peek, or use `--toggle` for a bind that both opens and closes:
 
 ```lua
 hl.bind("SUPER + Z", hl.dsp.exec_cmd("pacpeek"))
-hl.bind("SUPER + SHIFT + Z", hl.dsp.exec_cmd("pkill -x pacpeek || pacpeek --mode toggle"))
+hl.bind("SUPER + SHIFT + Z", hl.dsp.exec_cmd("pacpeek --toggle --mode toggle"))
 ```
 
 A bind made only of modifiers, such as `"SUPER + CTRL"`, does nothing: the bind needs a real key at the end.

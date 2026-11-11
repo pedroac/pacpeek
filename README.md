@@ -23,17 +23,28 @@ make && sudo make install
 Bind it in Hyprland (`hyprland.lua`), then hold the shortcut to peek and let go to close:
 
 ```lua
-hl.bind("SUPER + Z", hl.dsp.exec_cmd("pacpeek"))
+hl.bind("SUPER + Z", hl.dsp.exec_cmd("pacpeek --mode hold"))
+```
+
+If you prefer a toggle keybind (press to open, press again to close):
+
+```lua
+hl.bind("SUPER + Z", hl.dsp.exec_cmd("pacpeek --mode toggle --toggle"))
 ```
 
 ## Usage
 
 ```
-pacpeek [--mode hold|toggle|external] [--timeout SECONDS] [--monitor NAME]
+pacpeek [--mode hold|toggle|external] [--timeout SECONDS] [--monitor NAME] [--toggle]
 ```
 
-- `hold` (default): closes when a key is released. `toggle`: closes on Esc. `external`: takes no keyboard focus; the compositor closes it.
-- `--timeout` closes it automatically; `--monitor` picks the screen.
+- `mode` (or `-m`): Determines how the overlay behaves and how it is dismissed:
+  - `hold` (default): closes when a key is released.
+  - `toggle`: closes on Esc.
+  - `external`: takes no keyboard focus; the compositor closes it.
+- `--timeout`: closes it automatically after the specified seconds.
+- `--monitor`: picks the target screen/monitor name.
+- `--toggle` (-T): if already running, closes the existing instance and exits; otherwise opens normally (ideal for a single toggle keybind).
 
 ## Platform
 
