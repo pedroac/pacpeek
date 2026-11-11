@@ -64,7 +64,9 @@ CpuSample system_cpu_sample(void) {
 }
 
 int system_cpu_percent(CpuSample before, CpuSample after) {
-    /* iowait can make the counters non-monotonic; treat that as "unknown". */
+    /* iowait can make the counters non-monotonic; treat that as "unknown".
+     * Require at least 10 jiffies of elapsed total time so a very short sample
+     * window (< ~100 ms on a HZ=100 kernel) doesn't produce a meaningless result. */
     if (!before.total || after.total < before.total + 10 || after.busy < before.busy) return -1;
     unsigned long long total = after.total - before.total;
     int percent = (int)((after.busy - before.busy) * 100.0 / total + 0.5);

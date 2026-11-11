@@ -271,13 +271,20 @@ int display_dispatch(Display *dpy, int timeout_ms, int extra_fd) {
         if (wl_display_dispatch_pending(d) < 0) return -1;
     }
 
-    if (wl_display_flush(d) < 0 && errno != EAGAIN) {
-        wl_display_cancel_read(d);
-        return -1;
+    /* When the outgoing buffer is full, flush returns EAGAIN. Poll for POLLOUT on the
+     * Wayland fd so the loop wakes up as soon as the socket drains, rather than
+     * spinning until a Wayland event or timeout arrives. */
+    bool need_flush = false;
+    if (wl_display_flush(d) < 0) {
+        if (errno != EAGAIN) {
+            wl_display_cancel_read(d);
+            return -1;
+        }
+        need_flush = true;
     }
 
     struct pollfd fds[2] = {
-        { .fd = wl_display_get_fd(d), .events = POLLIN },
+        { .fd = wl_display_get_fd(d), .events = POLLIN | (need_flush ? POLLOUT : 0) },
         { .fd = extra_fd, .events = POLLIN },
     };
     int ret = poll(fds, extra_fd >= 0 ? 2 : 1, timeout_ms);
@@ -318,7 +325,10 @@ static void panel_free_buffer(Panel *panel) {
 
 static bool panel_alloc_buffer(Panel *panel, int width, int height) {
     int stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, width);
-    size_t size = (size_t)stride * height;
+    /* cairo_format_stride_for_width returns -1 on error; guard before casting to size_t,
+     * which would otherwise produce a huge value and cause an enormous mmap. */
+    if (stride < 0) return false;
+    size_t size = (size_t)stride * (size_t)height;
 
     int fd = memfd_create("pacpeek", MFD_CLOEXEC);
     if (fd < 0) return false;

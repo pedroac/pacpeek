@@ -134,7 +134,12 @@ static bool acquire_single_instance_lock(void) {
         close(fd);
         return true;
     }
-    return flock(fd, LOCK_EX | LOCK_NB) == 0;
+    /* Keep fd open for the process lifetime: flock(2) advisory locks are released when
+     * all fds referencing the open-file-description are closed, so we must not let it
+     * go out of scope. A static is enough — only one lock is ever acquired. */
+    static int lock_fd = -1;
+    lock_fd = fd;
+    return flock(lock_fd, LOCK_EX | LOCK_NB) == 0;
 }
 
 static long long now_ms(void) {

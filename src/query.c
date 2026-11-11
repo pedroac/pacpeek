@@ -13,6 +13,9 @@ extern char **environ;
 
 static pid_t child = -1;
 static int pipe_fd = -1;
+/* The script output is small and predictable; 512 bytes is generous.
+ * If it somehow exceeds the buffer, the last (partial) line is silently dropped
+ * by the strtok parser — harmless, since all fields default to "unknown". */
 static char output[512];
 static size_t output_len;
 

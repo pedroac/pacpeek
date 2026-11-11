@@ -179,6 +179,8 @@ static void wifi_ssid(const char *iface, char *ssid, size_t size) {
     setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 
     char resp[8192];
+    /* Both queries share the same resp buffer; the nlattr pointer from the first call
+     * is only used to extract the family ID before the second call overwrites the buffer. */
     struct nlattr *a = genl_query(fd, GENL_ID_CTRL, CTRL_CMD_GETFAMILY,
                                   CTRL_ATTR_FAMILY_NAME, "nl80211", sizeof("nl80211"),
                                   CTRL_ATTR_FAMILY_ID, resp, sizeof(resp));
