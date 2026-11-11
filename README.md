@@ -1,6 +1,8 @@
 ![Screenshot](./docs/screenshot.png)
 
 # pacpeek
+**Task bars are bloated. Peek the status.**
+
 A quick hotkey-powered panel to peek at system essentials on demand, without needing a permanent status bar.
 
 `pacpeek` was built for tiling window managers like Hyprland to optimize how system status is delivered:
