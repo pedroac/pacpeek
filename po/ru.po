@@ -147,6 +147,10 @@ msgid "RAM %d%%"
 msgstr "ОЗУ %d%%"
 
 #: src/render.c
+msgid "CPU --%"
+msgstr "ЦП --%"
+
+#: src/render.c
 #, c-format
 msgid "CPU %d%%"
 msgstr "ЦП %d%%"

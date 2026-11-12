@@ -438,9 +438,12 @@ static void build_info(const SystemState *s) {
         snprintf(buf, sizeof(buf), _("RAM %d%%"), s->ram_percent);
         add_text(line, buf, level_above(s->ram_percent, 80, 90));
     }
+    /* The first sample takes a moment; a placeholder keeps the line from shifting. */
     if (s->cpu_percent >= 0) {
         snprintf(buf, sizeof(buf), _("CPU %d%%"), s->cpu_percent);
         add_text(line, buf, level_above(s->cpu_percent, 85, 95));
+    } else {
+        add_text(line, _("CPU --%"), LEVEL_NORMAL);
     }
     if (s->cpu_temp >= 0) {
         snprintf(buf, sizeof(buf), _("Temp %d\u00B0C"), s->cpu_temp);

@@ -140,6 +140,10 @@ msgid "RAM %d%%"
 msgstr "内存 %d%%"
 
 #: src/render.c
+msgid "CPU --%"
+msgstr "CPU --%"
+
+#: src/render.c
 #, c-format
 msgid "CPU %d%%"
 msgstr "CPU %d%%"
