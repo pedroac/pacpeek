@@ -57,7 +57,7 @@ Linux only, tested on **Arch Linux with Hyprland**. It will probably not work el
 ## Documentation
 
 - [Usage](docs/usage.md): modes, options, keyboard focus, Hyprland binds, release-to-close
-- [Configuration](docs/configuration.md): environment variables, late-night clock, colors, fonts
+- [Configuration](docs/configuration.md): config file, environment variables, late-night clock, colors, fonts
 - [Translations](docs/translations.md): languages, fonts per language, adding a language
 - [Building and installing](docs/building.md): dependencies, install options, minimal build
 - [Platform support and known limits](docs/platform.md)

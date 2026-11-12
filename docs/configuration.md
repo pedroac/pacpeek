@@ -1,6 +1,31 @@
 # Configuration
 
-pacpeek has no config file. Behaviour is set with [command-line options](usage.md) and these environment variables.
+Everything works without configuration. To change the defaults, pacpeek reads an optional config file, then environment variables, then [command-line options](usage.md); each overrides the one before.
+
+## Config file
+
+`~/.local/pac/pacpeek.conf`, one `key = value` per line. `#` starts a comment; blank lines are ignored. Bad lines are reported on stderr and skipped.
+
+```ini
+# ~/.local/pac/pacpeek.conf
+mode = toggle
+timeout = 10
+monitor = DP-1
+late = 23:30-06:00
+keyboard = exclusive
+font = /usr/share/fonts/TTF/MyFont.ttf
+font_light = /usr/share/fonts/TTF/MyFont-Light.ttf
+```
+
+| Key | Same as |
+|---|---|
+| `mode`, `timeout`, `monitor` | `--mode`, `--timeout`, `--monitor` |
+| `late` | `PACPEEK_LATE` |
+| `keyboard` | `PACPEEK_KEYBOARD` |
+| `font`, `font_light` | `PACPEEK_FONT`, `PACPEEK_FONT_LIGHT` |
+
+## Environment variables
+
 
 | Variable | Effect |
 |---|---|

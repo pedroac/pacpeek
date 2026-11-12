@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 #include "config.h"
+#include "config_file.h"
 #include "display.h"
 #include "i18n.h"
 #include "input.h"
@@ -68,6 +69,44 @@ static void usage(FILE *out) {
             "Only one instance runs at a time; SIGTERM or SIGINT also close it.\n"), out);
 }
 
+static bool set_mode(const char *value) {
+    if (strcmp(value, "hold") == 0) options.mode = MODE_HOLD;
+    else if (strcmp(value, "toggle") == 0) options.mode = MODE_TOGGLE;
+    else if (strcmp(value, "external") == 0) options.mode = MODE_EXTERNAL;
+    else return false;
+    return true;
+}
+
+static bool set_timeout(const char *value) {
+    char *end;
+    double seconds = strtod(value, &end);
+    if (*end || !(seconds > 0 && seconds <= MAX_TIMEOUT_S)) return false;
+    options.timeout_s = seconds;
+    return true;
+}
+
+/* Settings from the config file. Environment variables the program reads itself are
+ * only filled in when unset, so the environment beats the file and the command line
+ * beats both. */
+static bool on_config(const char *key, const char *value, void *data) {
+    (void)data;
+    static const struct { const char *key, *env; } envs[] = {
+        { "late", "PACPEEK_LATE" },
+        { "keyboard", "PACPEEK_KEYBOARD" },
+        { "font", "PACPEEK_FONT" },
+        { "font_light", "PACPEEK_FONT_LIGHT" },
+    };
+    if (strcmp(key, "mode") == 0) return set_mode(value);
+    if (strcmp(key, "timeout") == 0) return set_timeout(value);
+    if (strcmp(key, "monitor") == 0) {
+        options.monitor = strdup(value);
+        return options.monitor != NULL;
+    }
+    for (size_t i = 0; i < sizeof(envs) / sizeof(envs[0]); i++)
+        if (strcmp(key, envs[i].key) == 0) return setenv(envs[i].env, value, 0) == 0;
+    return false;
+}
+
 static bool parse_options(int argc, char **argv) {
     static const struct option longopts[] = {
         { "mode",    required_argument, NULL, 'm' },
@@ -82,25 +121,19 @@ static bool parse_options(int argc, char **argv) {
     while ((c = getopt_long(argc, argv, "m:t:M:Th", longopts, NULL)) != -1) {
         switch (c) {
         case 'm':
-            if (strcmp(optarg, "hold") == 0) options.mode = MODE_HOLD;
-            else if (strcmp(optarg, "toggle") == 0) options.mode = MODE_TOGGLE;
-            else if (strcmp(optarg, "external") == 0) options.mode = MODE_EXTERNAL;
-            else {
+            if (!set_mode(optarg)) {
                 fprintf(stderr, _("pacpeek: invalid mode \"%s\" (use hold, toggle or external)\n"),
                         optarg);
                 return false;
             }
             break;
-        case 't': {
-            char *end;
-            options.timeout_s = strtod(optarg, &end);
-            if (*end || !(options.timeout_s > 0 && options.timeout_s <= MAX_TIMEOUT_S)) {
+        case 't':
+            if (!set_timeout(optarg)) {
                 fprintf(stderr, _("pacpeek: invalid timeout \"%s\" (seconds, 0 to %d)\n"),
                         optarg, MAX_TIMEOUT_S);
                 return false;
             }
             break;
-        }
         case 'M':
             options.monitor = optarg;
             break;
@@ -238,6 +271,7 @@ int main(int argc, char **argv) {
     textdomain("pacpeek");
 #endif
 
+    config_load(on_config, NULL);
     if (!parse_options(argc, argv)) return 2;
     if (!acquire_single_instance_lock(options.toggle)) return 0;
 

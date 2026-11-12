@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pacpeek\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-10 04:40+0000\n"
+"POT-Creation-Date: 2026-11-12 07:18+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,6 +17,16 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: src/config_file.c
+#, c-format
+msgid "pacpeek: %s:%d: expected \"key = value\"\n"
+msgstr ""
+
+#: src/config_file.c
+#, c-format
+msgid "pacpeek: %s:%d: ignoring \"%s = %s\"\n"
+msgstr ""
 
 #: src/display.c
 #, c-format
@@ -34,6 +44,11 @@ msgid ""
 "outside (SIGTERM)\n"
 "  -t, --timeout SECONDS  close automatically after SECONDS\n"
 "  -M, --monitor NAME     show on monitor NAME (e.g. DP-1)\n"
+"  -T, --toggle           if already running, close the existing instance and "
+"exit;\n"
+"                         otherwise open normally (useful for a single "
+"keybind\n"
+"                         that both opens and closes the overlay)\n"
 "  -h, --help             show this help and exit\n"
 "\n"
 "Only one instance runs at a time; SIGTERM or SIGINT also close it.\n"
