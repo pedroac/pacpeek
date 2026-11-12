@@ -14,7 +14,11 @@ static void keyboard_keymap(void *data, struct wl_keyboard *keyboard,
 
 static void keyboard_enter(void *data, struct wl_keyboard *keyboard, uint32_t serial,
                            struct wl_surface *surface, struct wl_array *keys) {
-    (void)data; (void)keyboard; (void)serial; (void)surface; (void)keys;
+    (void)data; (void)keyboard; (void)serial; (void)surface;
+    /* Keys already held when focus arrives (the shortcut that launched us) count as pressed. */
+    if (!key_handler) return;
+    uint32_t *key;
+    wl_array_for_each(key, keys) key_handler(*key, true, handler_data);
 }
 
 static void keyboard_leave(void *data, struct wl_keyboard *keyboard, uint32_t serial,

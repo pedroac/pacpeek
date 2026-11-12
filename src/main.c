@@ -41,9 +41,27 @@ static void on_signal(int sig) {
     quit_requested = 1;
 }
 
+/* Hold mode closes once the keys held while we are open are all released. A release of a key
+ * we never saw pressed (compositors differ in what they forward) is ignored while others are
+ * still held; with nothing held, any release closes, as there is no shortcut left to wait for. */
+#define MAX_HELD 32
+static uint32_t held[MAX_HELD];
+static int held_count;
+
 static void on_key(uint32_t key, bool pressed, void *data) {
     Display *dpy = data;
-    if (options.mode == MODE_HOLD && !pressed) dpy->running = false;
+    if (options.mode == MODE_HOLD) {
+        int i = 0;
+        while (i < held_count && held[i] != key) i++;
+        if (pressed) {
+            if (i == held_count && held_count < MAX_HELD) held[held_count++] = key;
+        } else if (i < held_count) {
+            held[i] = held[--held_count];
+            if (held_count == 0) dpy->running = false;
+        } else if (held_count == 0) {
+            dpy->running = false;
+        }
+    }
     if (options.mode == MODE_TOGGLE && pressed && key == KEY_ESC) dpy->running = false;
 }
 
@@ -286,10 +304,13 @@ int main(int argc, char **argv) {
     int query_fd = query_start();
 
     /* On-demand focus lets the user move to another window; PACPEEK_KEYBOARD=exclusive
-     * restores the grab for compositors that don't focus on-demand surfaces by themselves. */
+     * restores the grab for compositors that don't focus on-demand surfaces by themselves.
+     * Sway hands the focus back right after mapping the surface, which would end hold mode at
+     * once, so it gets the grab by default. */
     const char *keyboard_env = getenv("PACPEEK_KEYBOARD");
+    bool exclusive = keyboard_env ? strcmp(keyboard_env, "exclusive") == 0 : getenv("SWAYSOCK") != NULL;
     KeyboardFocus focus = options.mode == MODE_EXTERNAL ? KEYBOARD_NONE
-        : keyboard_env && strcmp(keyboard_env, "exclusive") == 0 ? KEYBOARD_EXCLUSIVE
+        : exclusive ? KEYBOARD_EXCLUSIVE
         : KEYBOARD_ON_DEMAND;
     Display *dpy = display_create(options.monitor, focus, 0.04, 0.04, 0.05, 0.88);
     if (!dpy) {
