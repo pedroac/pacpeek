@@ -13,6 +13,9 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+/* The background glow is rendered at 1/GLOW_DOWNSCALE size and scaled up by the compositor. */
+#define GLOW_DOWNSCALE 8
+
 static void seat_capabilities(void *data, struct wl_seat *seat, uint32_t caps) {
     Display *dpy = data;
     bool has_keyboard = caps & WL_SEAT_CAPABILITY_KEYBOARD;
@@ -85,12 +88,15 @@ static void layer_surface_configure(void *data, struct zwlr_layer_surface_v1 *su
         dpy->height = height;
         wp_viewport_set_destination(dpy->viewport, width, height);
 
-        // --- Render the background radial gradient glow ---
-        cairo_t *cr_bg = panel_begin(&dpy->background_panel, width, height);
+        /* The glow is smooth, so it is drawn at a fraction of the output size and the
+         * compositor scales it up: a full-size ARGB buffer would cost ~8 MB at 1080p. */
+        int w = ((int)width + GLOW_DOWNSCALE - 1) / GLOW_DOWNSCALE;
+        int h = ((int)height + GLOW_DOWNSCALE - 1) / GLOW_DOWNSCALE;
+        cairo_t *cr_bg = panel_begin(&dpy->background_panel, w, h);
         if (cr_bg) {
-            double cx = (double)width / 2.0;
-            double cy = (double)height / 2.0;
-            double outer_radius = (width < height ? width : height) * 0.5;
+            double cx = w / 2.0;
+            double cy = h / 2.0;
+            double outer_radius = (w < h ? w : h) * 0.5;
 
             cairo_pattern_t *rad_grad = cairo_pattern_create_radial(
                 cx, cy, 0.0,
@@ -104,9 +110,12 @@ static void layer_surface_configure(void *data, struct zwlr_layer_surface_v1 *su
             cairo_paint(cr_bg);
             cairo_pattern_destroy(rad_grad);
 
+            if (!dpy->glow_viewport)
+                dpy->glow_viewport = wp_viewporter_get_viewport(
+                    dpy->viewporter, dpy->background_panel.surface);
+            wp_viewport_set_destination(dpy->glow_viewport, width, height);
             panel_end(&dpy->background_panel, cr_bg, 0, 0);
         }
-        // --------------------------------------------------
     }
 
     wl_surface_attach(dpy->surface, dpy->background, 0, 0);
@@ -272,7 +281,8 @@ Display *display_create(const char *output_name, KeyboardFocus focus,
 void display_destroy(Display *dpy) {
     if (!dpy) return;
 
-    panel_finish(&dpy->background_panel); // <-- Clean up background panel
+    if (dpy->glow_viewport) wp_viewport_destroy(dpy->glow_viewport);
+    panel_finish(&dpy->background_panel);
 
     if (dpy->layer_surface) zwlr_layer_surface_v1_destroy(dpy->layer_surface);
     if (dpy->viewport) wp_viewport_destroy(dpy->viewport);

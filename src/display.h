@@ -50,6 +50,7 @@ struct Display {
 
     /* Dedicated background panel for the radial gradient glow */
     Panel background_panel;
+    struct wp_viewport *glow_viewport;
 
     uint32_t width;
     uint32_t height;
