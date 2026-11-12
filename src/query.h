@@ -13,6 +13,7 @@ typedef struct {
     Volume output;
     Volume input;
     int notifications; /* -1 if no supported notification daemon answered */
+    bool loaded;       /* the first query has finished */
 } QueryState;
 
 /* Runs wpctl/makoctl/dunstctl in the background; returns a pollable fd, or -1. */

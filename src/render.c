@@ -409,6 +409,9 @@ static void build_info(const SystemState *s) {
                   : s->battery.percent <= 20 ? LEVEL_WARN : LEVEL_NORMAL;
         add_text(line, buf, level);
     }
+    /* The query answers after the first frame; blank lines hold its place so the layout
+     * does not jump when it arrives. */
+    if (!s->query.loaded && line->count == 0) add_segment(line, SEG_TEXT, " ", 0, LEVEL_NORMAL);
     commit_line(line);
 
     line = next_line(GROUP_STATUS);
@@ -454,6 +457,7 @@ static void build_info(const SystemState *s) {
     line = next_line(GROUP_CONTROLS);
     format_volume(line, _("Volume %d%%"), _("Volume muted"), &s->query.output, true);
     format_volume(line, _("Mic %d%%"), _("Mic muted"), &s->query.input, false);
+    if (!s->query.loaded) add_segment(line, SEG_TEXT, " ", 0, LEVEL_NORMAL);
     commit_line(line);
 }
 

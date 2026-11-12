@@ -98,6 +98,7 @@ bool query_read(QueryState *state) {
     finish();
     output[output_len] = '\0';
 
+    state->loaded = true;
     state->notifications = -1;
     for (char *line = strtok(output, "\n"); line; line = strtok(NULL, "\n")) {
         if (strncmp(line, "out ", 4) == 0) parse_volume(line + 4, &state->output);
