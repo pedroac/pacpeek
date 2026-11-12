@@ -7,7 +7,7 @@ pacpeek is Linux only, and it has only been tested on **Arch Linux with Hyprland
 - **Wi-Fi name:** read through the Linux `nl80211` generic netlink interface (`network.c`).
 - **Linux APIs:** `memfd_create` for shared memory (`display.c`) and Linux evdev key codes (`input.c`, `main.c`).
 - **Distribution layout:** font files are looked up under `/usr/share/fonts` (`render.c`), and the lock file lives in `$XDG_RUNTIME_DIR` or `/run/user/UID` (`main.c`).
-- **External tools:** `wpctl` for volumes and `makoctl` or `dunstctl` for notifications, run through `/bin/sh` (`query.c`).
+- **External tools:** `wpctl` for volumes and `pachud count`, `makoctl` or `dunstctl` for notifications, run through `/bin/sh` (`query.c`).
 - **Build:** GNU make, a C compiler, `pkg-config` and `wayland-scanner`. The translated date formats use the GNU `strftime` `%-d` extension.
 
 ## Known limits

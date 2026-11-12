@@ -10,7 +10,7 @@
 - `i18n.h`: gettext macros (plain strings with `I18N=0`)
 - `input.c/h`: `wl_keyboard` events by evdev key code (no keymap)
 - `system.c/h`: time, RAM, CPU usage and temperature, battery (system batteries only)
-- `query.c/h`: background query for volumes (`wpctl`) and notification count (`makoctl`/`dunstctl`)
+- `query.c/h`: background query for volumes (`wpctl`) and notification count (`pachud`/`makoctl`/`dunstctl`)
 - `network.c/h`: connection status from `/proc` and `/sys`, Wi-Fi SSID via nl80211 netlink (no D-Bus)
 
 `protocol/` holds the `wlr-layer-shell` description (not part of `wayland-protocols`); the other protocol bindings are generated at build time. `po/` holds the translation catalogs.
