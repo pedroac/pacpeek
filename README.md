@@ -1,12 +1,11 @@
-# pacpeek
+<!-- mu# pacpeek -->
 **Task bars are bloated. Peek the status.**
 
 ![Screenshot](./docs/screenshot.png)
 
 A quick hotkey-powered panel to peek at system essentials on demand, without needing a permanent status bar.
 
-`pacpeek` was built for tiling window managers like Hyprland and Sway to optimize how system status is delivered:
-
+* **Peek time while on fullscreen:** Check the time and system status while a fullscreen game or video is running, without switching windows or leaving it.
 * **No configuration overhead:** Skip the upfront setup and complex styling layers (CSS, JavaScript, heavy configs). It works cleanly and readably right out of the box.
 * **Reliability & clean presentation:** Built to offer a polished layout that doesn't suffer from stability issues or layout clutter.
 * **Resource efficiency:** Designed specifically for low-RAM environments, eliminating background overhead for stats you only need to check occasionally.
