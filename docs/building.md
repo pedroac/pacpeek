@@ -28,4 +28,4 @@ An English-only binary: no gettext, HarfBuzz or FriBidi, no per-language fonts, 
 
 ## Runtime tools
 
-Volumes come from `wpctl` (PipeWire/WirePlumber) and the notification count from `pachud`, `makoctl` or `dunstctl` (the first that answers). They run in the background so the overlay isn't delayed, and whatever is unavailable is left out. CPU usage appears about 0.5 s after opening, since it needs two samples.
+Volumes come from `wpctl` (PipeWire/WirePlumber) and the notification count from `pacreact`, `makoctl` or `dunstctl` (the first that answers). They run in the background so the overlay isn't delayed, and whatever is unavailable is left out. CPU usage appears about 0.5 s after opening, since it needs two samples.

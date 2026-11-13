@@ -13,7 +13,7 @@
 - `input.c/h`: `wl_keyboard` events by evdev key code (no keymap)
 - `sysfs.c/h`: reading single-line `/proc` and `/sys` files, shared by `system.c` and `network.c`
 - `system.c/h`: time, RAM, CPU usage and temperature, battery (system batteries only)
-- `query.c/h`: background query for volumes (`wpctl`) and notification count (`pachud`/`makoctl`/`dunstctl`)
+- `query.c/h`: background query for volumes (`wpctl`) and notification count (`pacreact`/`makoctl`/`dunstctl`)
 - `network.c/h`: connection status from `/proc` and `/sys`, Wi-Fi SSID via nl80211 netlink (no D-Bus)
 
 Listeners in `display.c` and `input.c` have empty functions for events pacpeek ignores: libwayland aborts if an event reaches a NULL listener entry.
