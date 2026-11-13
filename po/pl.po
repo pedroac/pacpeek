@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pacpeek\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-12 07:18+0000\n"
+"POT-Creation-Date: 2026-11-13 00:21+0000\n"
 "PO-Revision-Date: 2026-11-10 02:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: Polish\n"
@@ -15,6 +15,11 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
 "|| n%100>=20) ? 1 : 2);\n"
+
+#: src/config_file.c
+#, c-format
+msgid "pacpeek: %s:%d: line too long, ignored\n"
+msgstr "pacpeek: %s:%d: zbyt długi wiersz, pomijanie\n"
 
 #: src/config_file.c
 #, c-format
@@ -31,8 +36,13 @@ msgstr "pacpeek: %s:%d: pomijanie \"%s = %s\"\n"
 msgid "pacpeek: monitor \"%s\" not found; available:"
 msgstr "pacpeek: nie znaleziono monitora „%s”; dostępne:"
 
+#: src/display.c
+#, c-format
+msgid " (%d more cannot be named: this compositor's outputs are too old)"
+msgstr ""
+" (jeszcze %d nie da się nazwać: wyjścia tego kompozytora są zbyt stare)"
+
 #: src/main.c
-#, fuzzy
 msgid ""
 "Usage: pacpeek [OPTION]...\n"
 "Show the time, date and system status in a fullscreen overlay.\n"
@@ -61,6 +71,11 @@ msgstr ""
 "z zewnątrz (SIGTERM)\n"
 "  -t, --timeout SEKUNDY  zamyka automatycznie po SEKUNDY\n"
 "  -M, --monitor NAZWA    wyświetla na monitorze NAZWA (np. DP-1)\n"
+"  -T, --toggle           jeśli już działa, zamyka istniejącą instancję i "
+"kończy;\n"
+"                         w przeciwnym razie otwiera normalnie (przydatne dla "
+"jednego\n"
+"                         skrótu, który otwiera i zamyka nakładkę)\n"
 "  -h, --help             wyświetla tę pomoc i kończy\n"
 "\n"
 "Jednocześnie działa tylko jedna instancja; SIGTERM lub SIGINT również ją "
@@ -90,6 +105,11 @@ msgstr ""
 "i wp_single_pixel_buffer_v1)\n"
 
 #: src/render.c
+#, c-format
+msgid "pacpeek: invalid text scale \"%s\" (use 0.5 to 2.5)\n"
+msgstr "pacpeek: nieprawidłowa skala tekstu „%s” (użyj od 0.5 do 2.5)\n"
+
+#: src/render.c
 msgid "pacpeek: no font found; set PACPEEK_FONT to a .ttf/.otf file\n"
 msgstr ""
 "pacpeek: nie znaleziono czcionki; ustaw PACPEEK_FONT na plik .ttf/.otf\n"
@@ -105,16 +125,6 @@ msgid_plural "%d notifications"
 msgstr[0] "%d powiadomienie"
 msgstr[1] "%d powiadomienia"
 msgstr[2] "%d powiadomień"
-
-#: src/render.c
-#, c-format
-msgid "Battery %d%% charging"
-msgstr "Bateria %d%% (ładowanie)"
-
-#: src/render.c
-#, c-format
-msgid "Battery %d%%"
-msgstr "Bateria %d%%"
 
 #: src/render.c
 msgid "Offline"
@@ -141,13 +151,13 @@ msgid "Wi-Fi"
 msgstr "Wi-Fi"
 
 #: src/render.c
+msgid "VPN"
+msgstr "VPN"
+
+#: src/render.c
 #, c-format
 msgid "RAM %d%%"
 msgstr "RAM %d%%"
-
-#: src/render.c
-msgid "CPU --%"
-msgstr "CPU --%"
 
 #: src/render.c
 #, c-format
@@ -155,9 +165,23 @@ msgid "CPU %d%%"
 msgstr "CPU %d%%"
 
 #: src/render.c
+msgid "CPU --%"
+msgstr "CPU --%"
+
+#: src/render.c
 #, c-format
 msgid "Temp %d°C"
 msgstr "Temp. %d°C"
+
+#: src/render.c
+#, c-format
+msgid "Battery %d%% charging"
+msgstr "Bateria %d%% (ładowanie)"
+
+#: src/render.c
+#, c-format
+msgid "Battery %d%%"
+msgstr "Bateria %d%%"
 
 #: src/render.c
 #, c-format
@@ -186,3 +210,9 @@ msgstr "%H:%M"
 #: src/render.c
 msgid "%A, %-d %B %Y"
 msgstr "%A, %-d %B %Y"
+
+#: src/system.c
+#, c-format
+msgid "pacpeek: invalid late window \"%s\" (use HH:MM-HH:MM or off)\n"
+msgstr ""
+"pacpeek: nieprawidłowy przedział nocny „%s” (użyj HH:MM-HH:MM lub off)\n"

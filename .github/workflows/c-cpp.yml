@@ -21,3 +21,5 @@ jobs:
       run: make
     - name: make (English-only, I18N=0)
       run: make clean && make I18N=0
+    - name: unit tests
+      run: make clean && make test

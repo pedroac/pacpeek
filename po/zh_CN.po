@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pacpeek\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-12 07:18+0000\n"
+"POT-Creation-Date: 2026-11-13 00:21+0000\n"
 "PO-Revision-Date: 2026-11-10 02:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: Simplified Chinese\n"
@@ -14,6 +14,11 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
+
+#: src/config_file.c
+#, c-format
+msgid "pacpeek: %s:%d: line too long, ignored\n"
+msgstr "pacpeek: %s:%d: 行过长，已忽略\n"
 
 #: src/config_file.c
 #, c-format
@@ -30,8 +35,12 @@ msgstr "pacpeek: %s:%d: 忽略\"%s = %s\"\n"
 msgid "pacpeek: monitor \"%s\" not found; available:"
 msgstr "pacpeek：未找到显示器“%s”；可用的有："
 
+#: src/display.c
+#, c-format
+msgid " (%d more cannot be named: this compositor's outputs are too old)"
+msgstr " (另有 %d 个无法命名：此合成器的输出版本过旧)"
+
 #: src/main.c
-#, fuzzy
 msgid ""
 "Usage: pacpeek [OPTION]...\n"
 "Show the time, date and system status in a fullscreen overlay.\n"
@@ -59,6 +68,8 @@ msgstr ""
 "                         external：不获取键盘焦点；由外部关闭(SIGTERM)\n"
 "  -t, --timeout 秒数     经过指定秒数后自动关闭\n"
 "  -M, --monitor 名称     在指定名称的显示器上显示（例如 DP-1）\n"
+"  -T, --toggle           如果已在运行，则关闭现有实例并退出；\n"
+"                         否则正常打开（适合用同一个快捷键打开和关闭叠层）\n"
 "  -h, --help             显示此帮助并退出\n"
 "\n"
 "同一时间只运行一个实例；SIGTERM 或 SIGINT 也会将其关闭。\n"
@@ -87,6 +98,11 @@ msgstr ""
 "wp_single_pixel_buffer_v1）\n"
 
 #: src/render.c
+#, c-format
+msgid "pacpeek: invalid text scale \"%s\" (use 0.5 to 2.5)\n"
+msgstr "pacpeek：无效的文字缩放“%s”（请使用 0.5 到 2.5）\n"
+
+#: src/render.c
 msgid "pacpeek: no font found; set PACPEEK_FONT to a .ttf/.otf file\n"
 msgstr "pacpeek：未找到字体；请将 PACPEEK_FONT 设置为 .ttf/.otf 文件\n"
 
@@ -99,16 +115,6 @@ msgstr "没有通知"
 msgid "%d notification"
 msgid_plural "%d notifications"
 msgstr[0] "%d 条通知"
-
-#: src/render.c
-#, c-format
-msgid "Battery %d%% charging"
-msgstr "电池 %d%%（充电中）"
-
-#: src/render.c
-#, c-format
-msgid "Battery %d%%"
-msgstr "电池 %d%%"
 
 #: src/render.c
 msgid "Offline"
@@ -135,13 +141,13 @@ msgid "Wi-Fi"
 msgstr "Wi-Fi"
 
 #: src/render.c
+msgid "VPN"
+msgstr "VPN"
+
+#: src/render.c
 #, c-format
 msgid "RAM %d%%"
 msgstr "内存 %d%%"
-
-#: src/render.c
-msgid "CPU --%"
-msgstr "CPU --%"
 
 #: src/render.c
 #, c-format
@@ -149,9 +155,23 @@ msgid "CPU %d%%"
 msgstr "CPU %d%%"
 
 #: src/render.c
+msgid "CPU --%"
+msgstr "CPU --%"
+
+#: src/render.c
 #, c-format
 msgid "Temp %d°C"
 msgstr "温度 %d°C"
+
+#: src/render.c
+#, c-format
+msgid "Battery %d%% charging"
+msgstr "电池 %d%%（充电中）"
+
+#: src/render.c
+#, c-format
+msgid "Battery %d%%"
+msgstr "电池 %d%%"
 
 #: src/render.c
 #, c-format
@@ -180,3 +200,8 @@ msgstr "%H:%M"
 #: src/render.c
 msgid "%A, %-d %B %Y"
 msgstr "%Y年%-m月%-d日 %A"
+
+#: src/system.c
+#, c-format
+msgid "pacpeek: invalid late window \"%s\" (use HH:MM-HH:MM or off)\n"
+msgstr "pacpeek：无效的夜间时段“%s”（请使用 HH:MM-HH:MM 或 off）\n"

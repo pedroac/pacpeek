@@ -1,4 +1,6 @@
 #include "system.h"
+#include "i18n.h"
+#include "sysfs.h"
 #include <dirent.h>
 #include <stdio.h>
 #include <string.h>
@@ -21,7 +23,8 @@ LateWindow system_late_window(const char *spec) {
     if (sscanf(spec, "%d:%d-%d:%d%c", &h1, &m1, &h2, &m2, &extra) == 4 &&
         h1 >= 0 && h1 < 24 && h2 >= 0 && h2 < 24 &&
         m1 >= 0 && m1 < 60 && m2 >= 0 && m2 < 60)
-        window = (LateWindow){ h1 * 60 + m1, h2 * 60 + m2 };
+        return (LateWindow){ h1 * 60 + m1, h2 * 60 + m2 };
+    fprintf(stderr, _("pacpeek: invalid late window \"%s\" (use HH:MM-HH:MM or off)\n"), spec);
     return window;
 }
 
@@ -44,7 +47,7 @@ int system_ram_percent(void) {
     }
     fclose(f);
 
-    if (!total) return -1;
+    if (!total || !available) return -1;
     return (int)((total - available) * 100.0 / total + 0.5);
 }
 
@@ -73,21 +76,22 @@ int system_cpu_percent(CpuSample before, CpuSample after) {
     return percent > 100 ? 100 : percent;
 }
 
-static bool read_line(const char *path, char *buf, size_t size) {
-    FILE *f = fopen(path, "r");
-    if (!f) return false;
-    bool ok = fgets(buf, size, f) != NULL;
-    fclose(f);
-    if (ok) buf[strcspn(buf, "\n")] = '\0';
-    return ok;
-}
-
-static bool read_int(const char *path, long *value) {
-    char buf[32];
-    return read_line(path, buf, sizeof(buf)) && sscanf(buf, "%ld", value) == 1;
-}
-
 static const char *cpu_sensors[] = { "coretemp", "k10temp", "zenpower", "cpu_thermal", NULL };
+
+/* Zone 0 is often an ACPI or board sensor, so only zones that say they are the CPU count. */
+static void find_cpu_thermal_zone(char *out, size_t size) {
+    static const char *const types[] = { "x86_pkg_temp", "cpu-thermal", "cpu_thermal", NULL };
+    for (int zone = 0; zone < 32; zone++) {
+        char path[64], type[32];
+        snprintf(path, sizeof(path), "/sys/class/thermal/thermal_zone%d/type", zone);
+        if (!sysfs_read_line(path, type, sizeof(type))) continue;
+        for (int i = 0; types[i]; i++) {
+            if (strcmp(type, types[i]) != 0) continue;
+            snprintf(out, size, "/sys/class/thermal/thermal_zone%d/temp", zone);
+            return;
+        }
+    }
+}
 
 int system_cpu_temp(void) {
     static char sensor_path[64];
@@ -102,7 +106,7 @@ int system_cpu_temp(void) {
             if (e->d_name[0] == '.') continue;
             char path[64], name[32];
             snprintf(path, sizeof(path), "/sys/class/hwmon/%.20s/name", e->d_name);
-            if (!read_line(path, name, sizeof(name))) continue;
+            if (!sysfs_read_line(path, name, sizeof(name))) continue;
 
             for (int rank = 0; cpu_sensors[rank]; rank++) {
                 if (strcmp(name, cpu_sensors[rank]) != 0) continue;
@@ -114,12 +118,11 @@ int system_cpu_temp(void) {
             }
         }
         closedir(dir);
-        if (best_rank < 0) snprintf(sensor_path, sizeof(sensor_path),
-                                    "/sys/class/thermal/thermal_zone0/temp");
+        if (best_rank < 0) find_cpu_thermal_zone(sensor_path, sizeof(sensor_path));
     }
 
     long millidegrees;
-    if (!read_int(sensor_path, &millidegrees)) return -1;
+    if (!sysfs_read_int(sensor_path, &millidegrees)) return -1;
     return (int)((millidegrees + 500) / 1000);
 }
 
@@ -135,19 +138,19 @@ BatteryInfo system_battery(void) {
         snprintf(base, sizeof(base), "/sys/class/power_supply/%.40s", e->d_name);
 
         snprintf(path, sizeof(path), "%s/type", base);
-        if (!read_line(path, value, sizeof(value)) || strcmp(value, "Battery") != 0) continue;
+        if (!sysfs_read_line(path, value, sizeof(value)) || strcmp(value, "Battery") != 0) continue;
 
         snprintf(path, sizeof(path), "%s/scope", base);
-        if (read_line(path, value, sizeof(value)) && strcmp(value, "Device") == 0) continue;
+        if (sysfs_read_line(path, value, sizeof(value)) && strcmp(value, "Device") == 0) continue;
 
         long capacity;
         snprintf(path, sizeof(path), "%s/capacity", base);
-        if (!read_int(path, &capacity)) continue;
+        if (!sysfs_read_int(path, &capacity)) continue;
 
         snprintf(path, sizeof(path), "%s/status", base);
         info.present = true;
         info.percent = (int)capacity;
-        info.charging = read_line(path, value, sizeof(value)) && strcmp(value, "Charging") == 0;
+        info.charging = sysfs_read_line(path, value, sizeof(value)) && strcmp(value, "Charging") == 0;
         break;
     }
     closedir(dir);

@@ -2,6 +2,7 @@
 #include "config.h"
 #include "config_file.h"
 #include "display.h"
+#include "hold.h"
 #include "i18n.h"
 #include "input.h"
 #include "network.h"
@@ -12,6 +13,7 @@
 #include <getopt.h>
 #include <linux/input-event-codes.h>
 #include <locale.h>
+#include <math.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,6 +25,13 @@
 
 #define CPU_FIRST_SAMPLE_MS 500
 #define MAX_TIMEOUT_S (24 * 60 * 60)
+/* A stuck wpctl or notification daemon must not hold the query (and its refresh) forever. */
+#define QUERY_TIMEOUT_MS 1500
+/* The first frame waits this long for the query, so notifications and volumes are there from
+ * the start instead of appearing (and shifting the layout) a moment later. */
+#define FIRST_DRAW_WAIT_MS 300
+/* While the overlay stays open, the status is re-read this often. */
+#define REFRESH_MS 5000
 
 typedef enum { MODE_HOLD, MODE_TOGGLE, MODE_EXTERNAL } Mode;
 
@@ -41,33 +50,19 @@ static void on_signal(int sig) {
     quit_requested = 1;
 }
 
-/* Hold mode closes once the keys held while we are open are all released. A release of a key
- * we never saw pressed (compositors differ in what they forward) is ignored while others are
- * still held; with nothing held, any release closes, as there is no shortcut left to wait for. */
-#define MAX_HELD 32
-static uint32_t held[MAX_HELD];
-static int held_count;
+static HoldTracker hold;
 
+/* Installed before the overlay exists, so keys already held when focus arrives are seen. */
 static void on_key(uint32_t key, bool pressed, void *data) {
-    Display *dpy = data;
-    if (options.mode == MODE_HOLD) {
-        int i = 0;
-        while (i < held_count && held[i] != key) i++;
-        if (pressed) {
-            if (i == held_count && held_count < MAX_HELD) held[held_count++] = key;
-        } else if (i < held_count) {
-            held[i] = held[--held_count];
-            if (held_count == 0) dpy->running = false;
-        } else if (held_count == 0) {
-            dpy->running = false;
-        }
-    }
-    if (options.mode == MODE_TOGGLE && pressed && key == KEY_ESC) dpy->running = false;
+    (void)data;
+    if (options.mode == MODE_HOLD && hold_key(&hold, key, pressed)) quit_requested = 1;
+    if (options.mode == MODE_TOGGLE && pressed && key == KEY_ESC) quit_requested = 1;
 }
 
 /* Without keyboard focus the overlay can no longer see the key release or Esc. */
 static void on_leave(void *data) {
-    ((Display *)data)->running = false;
+    (void)data;
+    quit_requested = 1;
 }
 
 static void usage(FILE *out) {
@@ -113,6 +108,9 @@ static bool on_config(const char *key, const char *value, void *data) {
         { "keyboard", "PACPEEK_KEYBOARD" },
         { "font", "PACPEEK_FONT" },
         { "font_light", "PACPEEK_FONT_LIGHT" },
+        { "text_scale", "PACPEEK_TEXT_SCALE" },
+        { "time_format", "PACPEEK_TIME_FORMAT" },
+        { "date_format", "PACPEEK_DATE_FORMAT" },
     };
     if (strcmp(key, "mode") == 0) return set_mode(value);
     if (strcmp(key, "timeout") == 0) return set_timeout(value);
@@ -215,12 +213,14 @@ static bool acquire_single_instance_lock(bool toggle) {
         /* Read the PID from the lock file and send SIGTERM to that instance.
          * If the process already exited (ESRCH), kill() fails silently — that's fine. */
         pid_t pid = 0;
-        FILE *pf = fopen(path, "r");
-        if (pf) {
-            if (fscanf(pf, "%d", (int *)&pid) != 1) {
-                pid = 0; // Handled / checked return value
+        /* The holder truncates the file before writing its PID, so retry briefly if empty. */
+        for (int attempt = 0; attempt < 10 && pid <= 0; attempt++) {
+            FILE *pf = fopen(path, "r");
+            if (pf) {
+                if (fscanf(pf, "%d", (int *)&pid) != 1) pid = 0;
+                fclose(pf);
             }
-            fclose(pf);
+            if (pid <= 0) usleep(10 * 1000);
         }
         if (pid > 1) kill(pid, SIGTERM);
     }
@@ -253,30 +253,146 @@ static void read_system(SystemState *state, const LateWindow *late) {
     network_get_status(&state->network);
 }
 
-static bool draw_panel(Panel *panel, void (*size)(int *, int *), void (*paint)(cairo_t *),
-                       int x_center, int y) {
-    int w, h;
-    size(&w, &h);
-    cairo_t *cr = panel_begin(panel, w, h);
+/* Panels are laid out in buffer pixels but placed in logical ones. A panel's logical size is
+ * rounded up and its buffer sized from that, so the compositor's scaling stays exact. */
+static bool draw_panel(Display *dpy, Panel *panel, int w, int h, void (*paint)(cairo_t *),
+                       int y) {
+    double scale = dpy->scale;
+    int logical_w = (int)ceil(w / scale - 1e-6);
+    int logical_h = (int)ceil(h / scale - 1e-6);
+    cairo_t *cr = panel_begin(panel, (int)lround(logical_w * scale), (int)lround(logical_h * scale));
     if (!cr) return false;
     paint(cr);
-    panel_end(panel, cr, x_center - w / 2, y);
+    panel_end(panel, cr, ((int)dpy->width - logical_w) / 2, y, logical_w, logical_h);
     return true;
 }
 
+/* The clock and the status block are centered on screen as one group. */
 static bool draw(Display *dpy, Panel *clock, Panel *info, const SystemState *state) {
     render_update(state);
 
-    int unused, clock_h, info_h;
-    render_clock_size(&unused, &clock_h);
-    render_info_size(&unused, &info_h);
+    int clock_w, clock_h, info_w, info_h;
+    render_clock_size(&clock_w, &clock_h);
+    render_info_size(&info_w, &info_h);
     int gap = render_group_gap();
-    int top = ((int)dpy->height - (clock_h + gap + info_h)) / 2;
-    int cx = dpy->width / 2;
+    int screen_h = (int)lround(dpy->height * dpy->scale);
+    int top = (screen_h - (clock_h + gap + info_h)) / 2;
 
-    bool ok = draw_panel(clock, render_clock_size, render_clock, cx, top);
-    ok &= draw_panel(info, render_info_size, render_info, cx, top + clock_h + gap);
+    bool ok = draw_panel(dpy, clock, clock_w, clock_h, render_clock,
+                         (int)lround(top / dpy->scale));
+    ok &= draw_panel(dpy, info, info_w, info_h, render_info,
+                     (int)lround((top + clock_h + gap) / dpy->scale));
     return ok;
+}
+
+/* Text is sized from the buffer, so it has to be set up again when the scale changes. */
+static bool apply_scale(const Display *dpy) {
+    render_finish();
+    return render_init((int)lround(dpy->width * dpy->scale), (int)lround(dpy->height * dpy->scale));
+}
+
+/* Everything the main loop refreshes on a schedule. A deadline of 0 means "not pending". */
+typedef struct {
+    SystemState state;
+    LateWindow late;
+    CpuSample cpu_prev;
+    long long minute;
+    long long cpu_due;    /* first CPU reading, shortly after opening */
+    long long close_at;   /* --timeout */
+    long long query_due;  /* gives up on a stuck query */
+    long long refresh_due;
+    long long first_draw_due;  /* 0 once the first frame is out */
+    int query_fd;
+    bool dirty;           /* something changed that needs redrawing */
+} Schedule;
+
+static void start_query(Schedule *sched) {
+    sched->query_fd = query_start();
+    sched->query_due = sched->query_fd >= 0 ? now_ms() + QUERY_TIMEOUT_MS : 0;
+    if (sched->query_fd < 0) sched->state.query.loaded = true;  /* nothing to wait for */
+}
+
+/* False while the first frame is still waiting for the query. */
+static bool first_frame_ready(const Schedule *sched) {
+    return !sched->first_draw_due || sched->state.query.loaded || now_ms() >= sched->first_draw_due;
+}
+
+static void finish_query(Schedule *sched) {
+    sched->query_fd = -1;
+    sched->query_due = 0;
+    sched->dirty = true;
+}
+
+static void sample_cpu(Schedule *sched) {
+    CpuSample now = system_cpu_sample();
+    int percent = system_cpu_percent(sched->cpu_prev, now);
+    if (percent >= 0) {
+        sched->state.cpu_percent = percent;
+        sched->cpu_prev = now;
+    }
+    sched->cpu_due = 0;
+    sched->dirty = true;
+}
+
+/* How long the loop may sleep: until the next minute or the nearest pending deadline. */
+static int sleep_ms(const Schedule *sched) {
+    int timeout = ms_until_next_minute();
+    long long deadlines[] = { sched->cpu_due, sched->close_at, sched->query_due,
+                              sched->refresh_due, sched->first_draw_due };
+    for (size_t i = 0; i < sizeof(deadlines) / sizeof(deadlines[0]); i++) {
+        if (!deadlines[i]) continue;
+        long long left = deadlines[i] - now_ms();
+        if (left < timeout) timeout = left > 0 ? (int)left : 0;
+    }
+    return timeout;
+}
+
+/* Runs whatever became due while the loop slept. Returns false once --timeout has passed. */
+static bool run_due(Schedule *sched, bool query_ready) {
+    if (query_ready && query_read(&sched->state.query)) finish_query(sched);
+    if (sched->query_due && now_ms() >= sched->query_due) {
+        query_cancel();
+        sched->state.query.loaded = true;
+        finish_query(sched);
+    }
+    if (sched->close_at && now_ms() >= sched->close_at) return false;
+
+    /* The clock changes every minute; the rest is refreshed every few seconds. */
+    bool refresh = current_minute() != sched->minute || now_ms() >= sched->refresh_due;
+    if (refresh) {
+        sched->minute = current_minute();
+        sched->refresh_due = now_ms() + REFRESH_MS;
+        read_system(&sched->state, &sched->late);
+        sched->dirty = true;
+    }
+    if ((sched->cpu_due && now_ms() >= sched->cpu_due) || refresh) sample_cpu(sched);
+    if (refresh && sched->query_fd < 0) start_query(sched);
+    return true;
+}
+
+/* Blocked except while waiting in display_dispatch(), so no signal is lost between checking
+ * quit_requested and going to sleep. */
+static void install_signal_handlers(void) {
+    struct sigaction sa = { .sa_handler = on_signal };
+    sigaction(SIGINT, &sa, NULL);
+    sigaction(SIGTERM, &sa, NULL);
+
+    sigset_t blocked;
+    sigemptyset(&blocked);
+    sigaddset(&blocked, SIGINT);
+    sigaddset(&blocked, SIGTERM);
+    sigprocmask(SIG_BLOCK, &blocked, NULL);
+}
+
+/* On-demand focus lets the user move to another window; PACPEEK_KEYBOARD=exclusive restores
+ * the grab for compositors that don't focus on-demand surfaces by themselves. Sway hands the
+ * focus back right after mapping the surface, which would end hold mode at once, so it gets
+ * the grab by default. */
+static KeyboardFocus keyboard_focus(void) {
+    if (options.mode == MODE_EXTERNAL) return KEYBOARD_NONE;
+    const char *env = getenv("PACPEEK_KEYBOARD");
+    bool exclusive = env ? strcmp(env, "exclusive") == 0 : getenv("SWAYSOCK") != NULL;
+    return exclusive ? KEYBOARD_EXCLUSIVE : KEYBOARD_ON_DEMAND;
 }
 
 int main(int argc, char **argv) {
@@ -292,86 +408,57 @@ int main(int argc, char **argv) {
     config_load(on_config, NULL);
     if (!parse_options(argc, argv)) return 2;
     if (!acquire_single_instance_lock(options.toggle)) return 0;
+    install_signal_handlers();
 
-    struct sigaction sa = { .sa_handler = on_signal };
-    sigaction(SIGINT, &sa, NULL);
-    sigaction(SIGTERM, &sa, NULL);
-
-    CpuSample cpu_prev = system_cpu_sample();
     long long start = now_ms();
-    long long cpu_due = start + CPU_FIRST_SAMPLE_MS;
-    long long close_at = options.timeout_s > 0 ? start + (long long)(options.timeout_s * 1000) : 0;
-    int query_fd = query_start();
+    Schedule sched = {
+        .state = { .cpu_percent = -1, .query.notifications = -1 },
+        .late = system_late_window(getenv("PACPEEK_LATE")),
+        .cpu_prev = system_cpu_sample(),
+        .cpu_due = start + CPU_FIRST_SAMPLE_MS,
+        .refresh_due = start + REFRESH_MS,
+        .first_draw_due = start + FIRST_DRAW_WAIT_MS,
+        .close_at = options.timeout_s > 0 ? start + (long long)(options.timeout_s * 1000) : 0,
+    };
+    start_query(&sched);
 
-    /* On-demand focus lets the user move to another window; PACPEEK_KEYBOARD=exclusive
-     * restores the grab for compositors that don't focus on-demand surfaces by themselves.
-     * Sway hands the focus back right after mapping the surface, which would end hold mode at
-     * once, so it gets the grab by default. */
-    const char *keyboard_env = getenv("PACPEEK_KEYBOARD");
-    bool exclusive = keyboard_env ? strcmp(keyboard_env, "exclusive") == 0 : getenv("SWAYSOCK") != NULL;
-    KeyboardFocus focus = options.mode == MODE_EXTERNAL ? KEYBOARD_NONE
-        : exclusive ? KEYBOARD_EXCLUSIVE
-        : KEYBOARD_ON_DEMAND;
-    Display *dpy = display_create(options.monitor, focus, 0.04, 0.04, 0.05, 0.88);
+    /* Read before the overlay appears, so its first frame already has content. */
+    read_system(&sched.state, &sched.late);
+    sched.minute = current_minute();
+
+    input_set_handlers(on_key, on_leave, NULL);
+    Display *dpy = display_create(options.monitor, keyboard_focus(), 0.04, 0.04, 0.05, 0.88);
     if (!dpy) {
         fputs(_("pacpeek: could not create the overlay (needs wlr-layer-shell, "
                 "wp_viewporter and wp_single_pixel_buffer_v1)\n"), stderr);
         query_cancel();
         return 1;
     }
-    if (!render_init(dpy->width, dpy->height)) {
+    double applied_scale = dpy->scale;
+    if (!apply_scale(dpy)) {
         display_destroy(dpy);
         query_cancel();
         return 1;
     }
-    input_set_handlers(on_key, on_leave, dpy);
 
     Panel clock, info;
     panel_init(&clock, dpy);
     panel_init(&info, dpy);
 
-    SystemState state = { .cpu_percent = -1, .query.notifications = -1 };
-    LateWindow late = system_late_window(getenv("PACPEEK_LATE"));
-    read_system(&state, &late);
-    long long minute = current_minute();
-
     while (dpy->running && !quit_requested) {
-        if (dpy->dirty && draw(dpy, &clock, &info, &state)) dpy->dirty = false;
-
-        int timeout = ms_until_next_minute();
-        long long deadlines[] = { cpu_due, close_at };
-        for (int i = 0; i < 2; i++) {
-            if (!deadlines[i]) continue;
-            long long left = deadlines[i] - now_ms();
-            if (left < timeout) timeout = left > 0 ? (int)left : 0;
+        if (dpy->scale != applied_scale) {
+            applied_scale = dpy->scale;
+            if (!apply_scale(dpy)) break;
+        }
+        if ((dpy->dirty || sched.dirty) && first_frame_ready(&sched) &&
+            draw(dpy, &clock, &info, &sched.state)) {
+            dpy->dirty = false;
+            sched.dirty = false;
+            sched.first_draw_due = 0;
         }
 
-        int ret = display_dispatch(dpy, timeout, query_fd);
-        if (ret < 0) break;
-        if (ret == 1 && query_read(&state.query)) {
-            query_fd = -1;
-            dpy->dirty = true;
-        }
-
-        if (close_at && now_ms() >= close_at) break;
-
-        bool new_minute = current_minute() != minute;
-        if (new_minute) {
-            minute = current_minute();
-            read_system(&state, &late);
-            dpy->dirty = true;
-        }
-        if ((cpu_due && now_ms() >= cpu_due) || new_minute) {
-            CpuSample cpu_now = system_cpu_sample();
-            int percent = system_cpu_percent(cpu_prev, cpu_now);
-            if (percent >= 0) {
-                state.cpu_percent = percent;
-                cpu_prev = cpu_now;
-            }
-            cpu_due = 0;
-            dpy->dirty = true;
-        }
-        if (new_minute && query_fd < 0) query_fd = query_start();
+        int ret = display_dispatch(dpy, sleep_ms(&sched), sched.query_fd);
+        if (ret < 0 || !run_due(&sched, ret == 1)) break;
     }
 
     query_cancel();

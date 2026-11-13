@@ -4,7 +4,7 @@
 
 `wayland-client`, `wayland-protocols`, `cairo`, `freetype2`, and `harfbuzz` and `fribidi` (not needed with `I18N=0`, see [below](#minimal-build)). Build tools: GNU make, a C compiler, `pkg-config` and `wayland-scanner`.
 
-The compositor must support `wlr-layer-shell`, `wp_viewporter` and `wp_single_pixel_buffer_v1`.
+The compositor must support `wlr-layer-shell`, `wp_viewporter` and `wp_single_pixel_buffer_v1`. HiDPI sharpness uses `wp_fractional_scale_v1` when the compositor offers it (building needs `wayland-protocols` 1.31 or newer for its XML), and falls back to the output's integer scale.
 
 The translation catalogs are built with `msgfmt` from gettext. Without it the build still succeeds, just without translations (or use `I18N=0`). `xgettext` and `msgmerge` are only needed to refresh the catalogs.
 

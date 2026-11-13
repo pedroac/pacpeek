@@ -1,4 +1,5 @@
 #include "network.h"
+#include "sysfs.h"
 #include "utf8.h"
 #include <linux/genetlink.h>
 #include <linux/netlink.h>
@@ -11,45 +12,33 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-static bool default_route_v4(char *iface) {
-    FILE *f = fopen("/proc/net/route", "r");
-    if (!f) return false;
+/* Both route tables list one route per line. A parser fills in the interface and metric of a
+ * default route and returns true; the lowest metric wins. */
+typedef bool (*RouteParser)(const char *line, char *iface, unsigned *metric);
 
-    char line[256], name[IF_NAMESIZE];
+static bool parse_route_v4(const char *line, char *iface, unsigned *metric) {
+    char name[IF_NAMESIZE];
     unsigned dest, gateway, flags, mask;
-    int refcnt, use, metric, best = INT_MAX;
-
-    if (!fgets(line, sizeof(line), f)) line[0] = '\0';
-    while (fgets(line, sizeof(line), f)) {
-        if (sscanf(line, "%15s %x %x %x %d %d %d %x", name, &dest, &gateway, &flags,
-                   &refcnt, &use, &metric, &mask) != 8) continue;
-        if (dest == 0 && mask == 0 && (flags & 1) && metric < best) {
-            best = metric;
-            strcpy(iface, name);
-        }
-    }
-    fclose(f);
-    return best != INT_MAX;
+    int refcnt, use, metric_value;
+    if (sscanf(line, "%15s %x %x %x %d %d %d %x", name, &dest, &gateway, &flags, &refcnt, &use,
+               &metric_value, &mask) != 8)
+        return false;
+    if (dest != 0 || mask != 0 || !(flags & 1)) return false;
+    snprintf(iface, IF_NAMESIZE, "%s", name);
+    *metric = metric_value;
+    return true;
 }
 
-static bool default_route_v6(char *iface) {
-    FILE *f = fopen("/proc/net/ipv6_route", "r");
-    if (!f) return false;
-
-    char line[256], dest[33], name[IF_NAMESIZE];
-    unsigned plen, metric, refcnt, use, flags, best = UINT_MAX;
-
-    while (fgets(line, sizeof(line), f)) {
-        if (sscanf(line, "%32s %x %*s %*s %*s %x %x %x %x %15s", dest, &plen,
-                   &metric, &refcnt, &use, &flags, name) != 7) continue;
-        if (plen == 0 && strspn(dest, "0") == 32 && (flags & 1) &&
-            strcmp(name, "lo") != 0 && metric < best) {
-            best = metric;
-            strcpy(iface, name);
-        }
-    }
-    fclose(f);
-    return best != UINT_MAX;
+static bool parse_route_v6(const char *line, char *iface, unsigned *metric) {
+    char dest[33], name[IF_NAMESIZE];
+    unsigned plen, refcnt, use, flags;
+    if (sscanf(line, "%32s %x %*s %*s %*s %x %x %x %x %15s", dest, &plen, metric, &refcnt, &use,
+               &flags, name) != 7)
+        return false;
+    if (plen != 0 || strspn(dest, "0") != 32 || !(flags & 1) || strcmp(name, "lo") == 0)
+        return false;
+    snprintf(iface, IF_NAMESIZE, "%s", name);
+    return true;
 }
 
 static bool is_wireless(const char *iface) {
@@ -60,13 +49,39 @@ static bool is_wireless(const char *iface) {
 
 static bool is_ethernet(const char *iface) {
     char path[64];
+    long type;
     snprintf(path, sizeof(path), "/sys/class/net/%s/type", iface);
-    FILE *f = fopen(path, "r");
-    if (!f) return false;
-    int type = 0;
-    if (fscanf(f, "%d", &type) != 1) type = 0;
+    return sysfs_read_int(path, &type) && type == 1;
+}
+
+typedef struct {
+    char iface[IF_NAMESIZE];
+    unsigned metric;
+    bool found;
+} Route;
+
+/* Keeps the route with the lowest metric. */
+static void consider(Route *best, const char *iface, unsigned metric) {
+    if (best->found && metric >= best->metric) return;
+    snprintf(best->iface, sizeof(best->iface), "%s", iface);
+    best->metric = metric;
+    best->found = true;
+}
+
+/* Finds the preferred default route overall and the preferred one over a real link: with a
+ * VPN the first is the tunnel, and the second is the Wi-Fi or Ethernet it runs over. */
+static void default_routes(const char *table, RouteParser parse, Route *any, Route *physical) {
+    FILE *f = fopen(table, "r");
+    if (!f) return;
+
+    char line[256], name[IF_NAMESIZE];
+    unsigned metric;
+    while (fgets(line, sizeof(line), f)) {
+        if (!parse(line, name, &metric)) continue;
+        consider(any, name, metric);
+        if (is_wireless(name) || is_ethernet(name)) consider(physical, name, metric);
+    }
     fclose(f);
-    return type == 1;
 }
 
 static int signal_bars(const char *iface) {
@@ -99,6 +114,7 @@ typedef struct {
 } GenlRequest;
 
 static void add_attr(GenlRequest *req, int type, const void *data, int len) {
+    if (NLMSG_ALIGN(req->n.nlmsg_len) + NLA_ALIGN(NLA_HDRLEN + len) > sizeof(*req)) return;
     struct nlattr *attr = (struct nlattr *)((char *)req + NLMSG_ALIGN(req->n.nlmsg_len));
     attr->nla_type = type;
     attr->nla_len = NLA_HDRLEN + len;
@@ -175,7 +191,8 @@ static void wifi_ssid(const char *iface, char *ssid, size_t size) {
 
     int fd = socket(AF_NETLINK, SOCK_RAW | SOCK_CLOEXEC, NETLINK_GENERIC);
     if (fd < 0) return;
-    struct timeval timeout = { .tv_usec = 200000 };
+    /* The kernel answers in microseconds; this only bounds a stuck socket. */
+    struct timeval timeout = { .tv_usec = 50000 };
     setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 
     char resp[8192];
@@ -205,10 +222,16 @@ void network_get_status(NetworkStatus *status) {
     memset(status, 0, sizeof(*status));
     status->signal_bars = -1;
 
-    if (!default_route_v4(status->iface) && !default_route_v6(status->iface)) {
+    Route any = {0}, physical = {0};
+    default_routes("/proc/net/route", parse_route_v4, &any, &physical);
+    default_routes("/proc/net/ipv6_route", parse_route_v6, &any, &physical);
+    if (!any.found) {
         status->kind = NET_OFFLINE;
         return;
     }
+    const Route *link = physical.found ? &physical : &any;
+    snprintf(status->iface, sizeof(status->iface), "%s", link->iface);
+    status->vpn = physical.found && strcmp(any.iface, physical.iface) != 0;
 
     if (is_wireless(status->iface)) {
         status->kind = NET_WIFI;

@@ -3,7 +3,8 @@
 
 #include <stdbool.h>
 
-/* Reads ~/.local/pac/pacpeek.conf, if there is one: "key = value" lines, '#' starts a
+/* Reads $XDG_CONFIG_HOME/pacpeek/pacpeek.conf (~/.config/pacpeek/pacpeek.conf), or else the
+ * older ~/.local/pac/pacpeek.conf, if there is one: "key = value" lines, '#' starts a
  * comment. Calls handler(key, value, data) for each setting; the handler returns false
  * for an unknown key or a bad value, which is reported and skipped. */
 typedef bool (*ConfigHandler)(const char *key, const char *value, void *data);

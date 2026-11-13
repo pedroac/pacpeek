@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pacpeek\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-12 07:18+0000\n"
+"POT-Creation-Date: 2026-11-13 00:21+0000\n"
 "PO-Revision-Date: 2026-11-10 02:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: Japanese\n"
@@ -14,6 +14,11 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
+
+#: src/config_file.c
+#, c-format
+msgid "pacpeek: %s:%d: line too long, ignored\n"
+msgstr "pacpeek: %s:%d: 行が長すぎるため無視します\n"
 
 #: src/config_file.c
 #, c-format
@@ -30,8 +35,13 @@ msgstr "pacpeek: %s:%d: 「%s = %s」を無視します\n"
 msgid "pacpeek: monitor \"%s\" not found; available:"
 msgstr "pacpeek: モニター「%s」が見つかりません。利用可能:"
 
+#: src/display.c
+#, c-format
+msgid " (%d more cannot be named: this compositor's outputs are too old)"
+msgstr ""
+" (ほかの %d 個は名前を取得できません: このコンポジターの出力は古すぎます)"
+
 #: src/main.c
-#, fuzzy
 msgid ""
 "Usage: pacpeek [OPTION]...\n"
 "Show the time, date and system status in a fullscreen overlay.\n"
@@ -60,6 +70,10 @@ msgstr ""
 "閉じます (SIGTERM)\n"
 "  -t, --timeout 秒       指定した秒数後に自動で閉じます\n"
 "  -M, --monitor 名前     指定した名前のモニターに表示します (例: DP-1)\n"
+"  -T, --toggle           すでに実行中なら既存のインスタンスを終了して終わりま"
+"す。\n"
+"                         そうでなければ通常どおり開きます (1 つのキーで\n"
+"                         オーバーレイを開閉する場合に便利)\n"
 "  -h, --help             このヘルプを表示して終了します\n"
 "\n"
 "同時に実行できるのは 1 つだけです。SIGTERM または SIGINT でも閉じます。\n"
@@ -90,6 +104,11 @@ msgstr ""
 "wp_single_pixel_buffer_v1 が必要です)\n"
 
 #: src/render.c
+#, c-format
+msgid "pacpeek: invalid text scale \"%s\" (use 0.5 to 2.5)\n"
+msgstr "pacpeek: 無効なテキスト倍率「%s」(0.5 〜 2.5 を指定してください)\n"
+
+#: src/render.c
 msgid "pacpeek: no font found; set PACPEEK_FONT to a .ttf/.otf file\n"
 msgstr ""
 "pacpeek: フォントが見つかりません。PACPEEK_FONT に .ttf/.otf ファイルを指定し"
@@ -104,16 +123,6 @@ msgstr "通知なし"
 msgid "%d notification"
 msgid_plural "%d notifications"
 msgstr[0] "%d 件の通知"
-
-#: src/render.c
-#, c-format
-msgid "Battery %d%% charging"
-msgstr "バッテリー %d%% (充電中)"
-
-#: src/render.c
-#, c-format
-msgid "Battery %d%%"
-msgstr "バッテリー %d%%"
 
 #: src/render.c
 msgid "Offline"
@@ -140,13 +149,13 @@ msgid "Wi-Fi"
 msgstr "Wi-Fi"
 
 #: src/render.c
+msgid "VPN"
+msgstr "VPN"
+
+#: src/render.c
 #, c-format
 msgid "RAM %d%%"
 msgstr "RAM %d%%"
-
-#: src/render.c
-msgid "CPU --%"
-msgstr "CPU --%"
 
 #: src/render.c
 #, c-format
@@ -154,9 +163,23 @@ msgid "CPU %d%%"
 msgstr "CPU %d%%"
 
 #: src/render.c
+msgid "CPU --%"
+msgstr "CPU --%"
+
+#: src/render.c
 #, c-format
 msgid "Temp %d°C"
 msgstr "温度 %d°C"
+
+#: src/render.c
+#, c-format
+msgid "Battery %d%% charging"
+msgstr "バッテリー %d%% (充電中)"
+
+#: src/render.c
+#, c-format
+msgid "Battery %d%%"
+msgstr "バッテリー %d%%"
 
 #: src/render.c
 #, c-format
@@ -185,3 +208,10 @@ msgstr "%H:%M"
 #: src/render.c
 msgid "%A, %-d %B %Y"
 msgstr "%Y年%-m月%-d日 %A"
+
+#: src/system.c
+#, c-format
+msgid "pacpeek: invalid late window \"%s\" (use HH:MM-HH:MM or off)\n"
+msgstr ""
+"pacpeek: 無効な夜間の時間帯「%s」(HH:MM-HH:MM または off を指定してくださ"
+"い)\n"

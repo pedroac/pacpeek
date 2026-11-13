@@ -26,6 +26,7 @@ WL_PROTOCOLS = $(shell pkg-config --variable=pkgdatadir wayland-protocols)
 PROTOCOLS = protocol/wlr-layer-shell-unstable-v1.xml \
             $(WL_PROTOCOLS)/stable/xdg-shell/xdg-shell.xml \
             $(WL_PROTOCOLS)/stable/viewporter/viewporter.xml \
+            $(WL_PROTOCOLS)/staging/fractional-scale/fractional-scale-v1.xml \
             $(WL_PROTOCOLS)/staging/single-pixel-buffer/single-pixel-buffer-v1.xml
 
 PROTO_NAMES = $(basename $(notdir $(PROTOCOLS)))
@@ -94,6 +95,15 @@ pot:
 update-po: pot
 	for po in po/*.po; do msgmerge --update --backup=none --add-location=file $$po po/$(TARGET).pot; done
 
+# Unit tests for the code that needs no Wayland connection (network.c is included by the test).
+TEST_SRCS = tests/test.c src/utf8.c src/system.c src/sysfs.c src/config_file.c src/hold.c src/fontfind.c
+
+build/test: $(TEST_SRCS) $(wildcard src/*.h) | build/config.h
+	$(CC) $(ALL_CFLAGS) -Isrc $(TEST_SRCS) -o $@ $(ALL_LDFLAGS) $(ALL_LIBS)
+
+test: build/test
+	build/test
+
 clean:
 	rm -rf build $(TARGET)
 
@@ -112,4 +122,4 @@ uninstall:
 
 -include $(wildcard build/*.d)
 
-.PHONY: all clean install uninstall pot update-po FORCE
+.PHONY: all clean install uninstall test pot update-po FORCE

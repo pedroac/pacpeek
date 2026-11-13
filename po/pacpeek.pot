@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pacpeek\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-12 07:33+0000\n"
+"POT-Creation-Date: 2026-11-13 00:21+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,6 +17,11 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: src/config_file.c
+#, c-format
+msgid "pacpeek: %s:%d: line too long, ignored\n"
+msgstr ""
 
 #: src/config_file.c
 #, c-format
@@ -31,6 +36,11 @@ msgstr ""
 #: src/display.c
 #, c-format
 msgid "pacpeek: monitor \"%s\" not found; available:"
+msgstr ""
+
+#: src/display.c
+#, c-format
+msgid " (%d more cannot be named: this compositor's outputs are too old)"
 msgstr ""
 
 #: src/main.c
@@ -76,6 +86,11 @@ msgid ""
 msgstr ""
 
 #: src/render.c
+#, c-format
+msgid "pacpeek: invalid text scale \"%s\" (use 0.5 to 2.5)\n"
+msgstr ""
+
+#: src/render.c
 msgid "pacpeek: no font found; set PACPEEK_FONT to a .ttf/.otf file\n"
 msgstr ""
 
@@ -89,16 +104,6 @@ msgid "%d notification"
 msgid_plural "%d notifications"
 msgstr[0] ""
 msgstr[1] ""
-
-#: src/render.c
-#, c-format
-msgid "Battery %d%% charging"
-msgstr ""
-
-#: src/render.c
-#, c-format
-msgid "Battery %d%%"
-msgstr ""
 
 #: src/render.c
 msgid "Offline"
@@ -125,6 +130,10 @@ msgid "Wi-Fi"
 msgstr ""
 
 #: src/render.c
+msgid "VPN"
+msgstr ""
+
+#: src/render.c
 #, c-format
 msgid "RAM %d%%"
 msgstr ""
@@ -141,6 +150,16 @@ msgstr ""
 #: src/render.c
 #, c-format
 msgid "Temp %d°C"
+msgstr ""
+
+#: src/render.c
+#, c-format
+msgid "Battery %d%% charging"
+msgstr ""
+
+#: src/render.c
+#, c-format
+msgid "Battery %d%%"
 msgstr ""
 
 #: src/render.c
@@ -169,4 +188,9 @@ msgstr ""
 #. TRANSLATORS: strftime(3) date format; reorder freely, e.g. "%A, %-d de %B de %Y".
 #: src/render.c
 msgid "%A, %-d %B %Y"
+msgstr ""
+
+#: src/system.c
+#, c-format
+msgid "pacpeek: invalid late window \"%s\" (use HH:MM-HH:MM or off)\n"
 msgstr ""

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pacpeek\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-12 07:18+0000\n"
+"POT-Creation-Date: 2026-11-13 00:21+0000\n"
 "PO-Revision-Date: 2026-11-10 02:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: Arabic\n"
@@ -21,8 +21,13 @@ msgstr ""
 
 #: src/config_file.c
 #, c-format
+msgid "pacpeek: %s:%d: line too long, ignored\n"
+msgstr "pacpeek: %s:%d: السطر طويل جدًا، تم تجاهله\n"
+
+#: src/config_file.c
+#, c-format
 msgid "pacpeek: %s:%d: expected \"key = value\"\n"
-msgstr "pacpeek: %s:%d: esperaba \"المفتاح = القيمة\"\n"
+msgstr "pacpeek: %s:%d: كان المتوقع \"المفتاح = القيمة\"\n"
 
 #: src/config_file.c
 #, c-format
@@ -34,8 +39,12 @@ msgstr "pacpeek: %s:%d: تجاهل \"%s = %s\"\n"
 msgid "pacpeek: monitor \"%s\" not found; available:"
 msgstr "pacpeek: لم يتم العثور على الشاشة \"%s\"؛ المتاح:"
 
+#: src/display.c
+#, c-format
+msgid " (%d more cannot be named: this compositor's outputs are too old)"
+msgstr " (يتعذر تسمية %d أخرى: مخرجات هذا الـ compositor قديمة جدًا)"
+
 #: src/main.c
-#, fuzzy
 msgid ""
 "Usage: pacpeek [OPTION]...\n"
 "Show the time, date and system status in a fullscreen overlay.\n"
@@ -64,6 +73,9 @@ msgstr ""
 "الخارج (SIGTERM)\n"
 "  -t, --timeout ثوانٍ    يُغلق تلقائيًا بعد عدد الثواني المحدد\n"
 "  -M, --monitor الاسم    يعرض على الشاشة المحددة (مثل DP-1)\n"
+"  -T, --toggle           إذا كان يعمل بالفعل، أغلق النسخة الحالية واخرج؛\n"
+"                         وإلا افتحه بشكل عادي (مفيد لاختصار واحد يفتح الطبقة "
+"ويغلقها)\n"
 "  -h, --help             يعرض هذه المساعدة ثم يخرج\n"
 "\n"
 "يعمل مثيل واحد فقط في كل مرة؛ كما يُغلقه SIGTERM أو SIGINT.\n"
@@ -92,6 +104,11 @@ msgstr ""
 "وwp_single_pixel_buffer_v1)\n"
 
 #: src/render.c
+#, c-format
+msgid "pacpeek: invalid text scale \"%s\" (use 0.5 to 2.5)\n"
+msgstr "pacpeek: مقياس نص غير صالح \"%s\" (استخدم من 0.5 إلى 2.5)\n"
+
+#: src/render.c
 msgid "pacpeek: no font found; set PACPEEK_FONT to a .ttf/.otf file\n"
 msgstr "pacpeek: لم يتم العثور على خط؛ عيّن PACPEEK_FONT إلى ملف .ttf/.otf\n"
 
@@ -109,16 +126,6 @@ msgstr[2] "%d إشعاران"
 msgstr[3] "%d إشعارات"
 msgstr[4] "%d إشعارًا"
 msgstr[5] "%d إشعار"
-
-#: src/render.c
-#, c-format
-msgid "Battery %d%% charging"
-msgstr "البطارية ⁦%d%%⁩ (قيد الشحن)"
-
-#: src/render.c
-#, c-format
-msgid "Battery %d%%"
-msgstr "البطارية ⁦%d%%⁩"
 
 #: src/render.c
 msgid "Offline"
@@ -145,13 +152,13 @@ msgid "Wi-Fi"
 msgstr "واي فاي"
 
 #: src/render.c
+msgid "VPN"
+msgstr "VPN"
+
+#: src/render.c
 #, c-format
 msgid "RAM %d%%"
 msgstr "الذاكرة ⁦%d%%⁩"
-
-#: src/render.c
-msgid "CPU --%"
-msgstr "المعالج ⁦--%⁩"
 
 #: src/render.c
 #, c-format
@@ -159,9 +166,23 @@ msgid "CPU %d%%"
 msgstr "المعالج ⁦%d%%⁩"
 
 #: src/render.c
+msgid "CPU --%"
+msgstr "المعالج ⁦--%⁩"
+
+#: src/render.c
 #, c-format
 msgid "Temp %d°C"
 msgstr "الحرارة ⁦%d°C⁩"
+
+#: src/render.c
+#, c-format
+msgid "Battery %d%% charging"
+msgstr "البطارية ⁦%d%%⁩ (قيد الشحن)"
+
+#: src/render.c
+#, c-format
+msgid "Battery %d%%"
+msgstr "البطارية ⁦%d%%⁩"
 
 #: src/render.c
 #, c-format
@@ -190,3 +211,9 @@ msgstr "%H:%M"
 #: src/render.c
 msgid "%A, %-d %B %Y"
 msgstr "%A، %-d %B %Y"
+
+#: src/system.c
+#, c-format
+msgid "pacpeek: invalid late window \"%s\" (use HH:MM-HH:MM or off)\n"
+msgstr ""
+"pacpeek: فترة الليل المتأخرة غير صالحة \"%s\" (استخدم HH:MM-HH:MM أو off)\n"

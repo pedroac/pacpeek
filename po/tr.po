@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pacpeek\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-12 07:18+0000\n"
+"POT-Creation-Date: 2026-11-13 00:21+0000\n"
 "PO-Revision-Date: 2026-11-10 02:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: Turkish\n"
@@ -14,6 +14,11 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: src/config_file.c
+#, c-format
+msgid "pacpeek: %s:%d: line too long, ignored\n"
+msgstr "pacpeek: %s:%d: satır çok uzun, yok sayıldı\n"
 
 #: src/config_file.c
 #, c-format
@@ -30,8 +35,12 @@ msgstr "pacpeek: %s:%d: \"%s = %s\" yok sayıldı\n"
 msgid "pacpeek: monitor \"%s\" not found; available:"
 msgstr "pacpeek: \"%s\" monitörü bulunamadı; mevcut olanlar:"
 
+#: src/display.c
+#, c-format
+msgid " (%d more cannot be named: this compositor's outputs are too old)"
+msgstr " (%d tane daha adlandırılamıyor: bu compositor'un çıkışları çok eski)"
+
 #: src/main.c
-#, fuzzy
 msgid ""
 "Usage: pacpeek [OPTION]...\n"
 "Show the time, date and system status in a fullscreen overlay.\n"
@@ -60,6 +69,9 @@ msgstr ""
 "(SIGTERM)\n"
 "  -t, --timeout SANİYE   SANİYE sonra otomatik olarak kapanır\n"
 "  -M, --monitor AD       AD monitöründe gösterir (ör. DP-1)\n"
+"  -T, --toggle           zaten çalışıyorsa mevcut örneği kapatıp çıkar;\n"
+"                         değilse normal şekilde açar (katmanı hem açan hem\n"
+"                         kapatan tek bir kısayol için kullanışlıdır)\n"
 "  -h, --help             bu yardımı gösterir ve çıkar\n"
 "\n"
 "Aynı anda yalnızca bir örnek çalışır; SIGTERM veya SIGINT de onu kapatır.\n"
@@ -88,6 +100,11 @@ msgstr ""
 "wp_single_pixel_buffer_v1 gerekir)\n"
 
 #: src/render.c
+#, c-format
+msgid "pacpeek: invalid text scale \"%s\" (use 0.5 to 2.5)\n"
+msgstr "pacpeek: geçersiz metin ölçeği \"%s\" (0.5 ile 2.5 arası kullanın)\n"
+
+#: src/render.c
 msgid "pacpeek: no font found; set PACPEEK_FONT to a .ttf/.otf file\n"
 msgstr ""
 "pacpeek: yazı tipi bulunamadı; PACPEEK_FONT'u bir .ttf/.otf dosyasına "
@@ -103,16 +120,6 @@ msgid "%d notification"
 msgid_plural "%d notifications"
 msgstr[0] "%d bildirim"
 msgstr[1] "%d bildirim"
-
-#: src/render.c
-#, c-format
-msgid "Battery %d%% charging"
-msgstr "Pil %%%d, şarj oluyor"
-
-#: src/render.c
-#, c-format
-msgid "Battery %d%%"
-msgstr "Pil %%%d"
 
 #: src/render.c
 msgid "Offline"
@@ -139,13 +146,13 @@ msgid "Wi-Fi"
 msgstr "Wi-Fi"
 
 #: src/render.c
+msgid "VPN"
+msgstr "VPN"
+
+#: src/render.c
 #, c-format
 msgid "RAM %d%%"
 msgstr "RAM %%%d"
-
-#: src/render.c
-msgid "CPU --%"
-msgstr "CPU %--"
 
 #: src/render.c
 #, c-format
@@ -153,9 +160,23 @@ msgid "CPU %d%%"
 msgstr "CPU %%%d"
 
 #: src/render.c
+msgid "CPU --%"
+msgstr "CPU %--"
+
+#: src/render.c
 #, c-format
 msgid "Temp %d°C"
 msgstr "Sıcaklık %d°C"
+
+#: src/render.c
+#, c-format
+msgid "Battery %d%% charging"
+msgstr "Pil %%%d, şarj oluyor"
+
+#: src/render.c
+#, c-format
+msgid "Battery %d%%"
+msgstr "Pil %%%d"
 
 #: src/render.c
 #, c-format
@@ -184,3 +205,9 @@ msgstr "%H:%M"
 #: src/render.c
 msgid "%A, %-d %B %Y"
 msgstr "%-d %B %Y %A"
+
+#: src/system.c
+#, c-format
+msgid "pacpeek: invalid late window \"%s\" (use HH:MM-HH:MM or off)\n"
+msgstr ""
+"pacpeek: geçersiz gece aralığı \"%s\" (HH:MM-HH:MM veya off kullanın)\n"

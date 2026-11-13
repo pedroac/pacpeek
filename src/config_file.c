@@ -12,20 +12,33 @@ static char *trim(char *s) {
     return s;
 }
 
-static bool config_path(char *path, size_t size) {
+/* The XDG location first, then the older ~/.local/pac one. */
+static bool config_path(int which, char *path, size_t size) {
+    const char *xdg = getenv("XDG_CONFIG_HOME");
     const char *home = getenv("HOME");
-    if (!home || !*home) return false;
-    return snprintf(path, size, "%s/.local/pac/pacpeek.conf", home) < (int)size;
+    int len;
+    if (which == 0 && xdg && *xdg) len = snprintf(path, size, "%s/pacpeek/pacpeek.conf", xdg);
+    else if (which == 0 && home && *home) len = snprintf(path, size, "%s/.config/pacpeek/pacpeek.conf", home);
+    else if (which == 1 && home && *home) len = snprintf(path, size, "%s/.local/pac/pacpeek.conf", home);
+    else return false;
+    return len < (int)size;
 }
 
 void config_load(ConfigHandler handler, void *data) {
     char path[512];
-    if (!config_path(path, sizeof(path))) return;
-    FILE *f = fopen(path, "r");
+    FILE *f = NULL;
+    for (int which = 0; which < 2 && !f; which++)
+        if (config_path(which, path, sizeof(path))) f = fopen(path, "r");
     if (!f) return;
 
     char line[1024];
     for (int n = 1; fgets(line, sizeof(line), f); n++) {
+        /* A line that doesn't fit would otherwise have its tail read as a new setting. */
+        if (!strchr(line, '\n') && !feof(f)) {
+            fprintf(stderr, _("pacpeek: %s:%d: line too long, ignored\n"), path, n);
+            for (int c; (c = fgetc(f)) != EOF && c != '\n';) {}
+            continue;
+        }
         char *hash = strchr(line, '#');
         if (hash) *hash = '\0';
         char *text = trim(line);

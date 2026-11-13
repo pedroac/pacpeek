@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pacpeek\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-12 07:18+0000\n"
+"POT-Creation-Date: 2026-11-13 00:21+0000\n"
 "PO-Revision-Date: 2026-11-10 02:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: Korean\n"
@@ -14,6 +14,11 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
+
+#: src/config_file.c
+#, c-format
+msgid "pacpeek: %s:%d: line too long, ignored\n"
+msgstr "pacpeek: %s:%d: 줄이 너무 길어 무시함\n"
 
 #: src/config_file.c
 #, c-format
@@ -30,8 +35,12 @@ msgstr "pacpeek: %s:%d: \"%s = %s\" 무시함\n"
 msgid "pacpeek: monitor \"%s\" not found; available:"
 msgstr "pacpeek: 모니터 \"%s\"을(를) 찾을 수 없습니다. 사용 가능:"
 
+#: src/display.c
+#, c-format
+msgid " (%d more cannot be named: this compositor's outputs are too old)"
+msgstr " (%d개는 이름을 알 수 없음: 이 컴포지터의 출력이 너무 오래되었습니다)"
+
 #: src/main.c
-#, fuzzy
 msgid ""
 "Usage: pacpeek [OPTION]...\n"
 "Show the time, date and system status in a fullscreen overlay.\n"
@@ -60,6 +69,9 @@ msgstr ""
 "아야 합니다 (SIGTERM)\n"
 "  -t, --timeout 초       지정한 초 후에 자동으로 닫습니다\n"
 "  -M, --monitor 이름     지정한 이름의 모니터에 표시합니다 (예: DP-1)\n"
+"  -T, --toggle           이미 실행 중이면 기존 인스턴스를 닫고 종료하며,\n"
+"                         아니면 정상적으로 엽니다 (하나의 단축키로\n"
+"                         오버레이를 열고 닫을 때 유용)\n"
 "  -h, --help             이 도움말을 표시하고 종료합니다\n"
 "\n"
 "한 번에 하나의 인스턴스만 실행됩니다. SIGTERM 또는 SIGINT로도 닫을 수 있습니"
@@ -90,6 +102,11 @@ msgstr ""
 "wp_single_pixel_buffer_v1이 필요합니다)\n"
 
 #: src/render.c
+#, c-format
+msgid "pacpeek: invalid text scale \"%s\" (use 0.5 to 2.5)\n"
+msgstr "pacpeek: 잘못된 텍스트 배율 \"%s\" (0.5~2.5 사용)\n"
+
+#: src/render.c
 msgid "pacpeek: no font found; set PACPEEK_FONT to a .ttf/.otf file\n"
 msgstr ""
 "pacpeek: 글꼴을 찾을 수 없습니다. PACPEEK_FONT를 .ttf/.otf 파일로 설정하세"
@@ -104,16 +121,6 @@ msgstr "알림 없음"
 msgid "%d notification"
 msgid_plural "%d notifications"
 msgstr[0] "알림 %d개"
-
-#: src/render.c
-#, c-format
-msgid "Battery %d%% charging"
-msgstr "배터리 %d%% (충전 중)"
-
-#: src/render.c
-#, c-format
-msgid "Battery %d%%"
-msgstr "배터리 %d%%"
 
 #: src/render.c
 msgid "Offline"
@@ -140,13 +147,13 @@ msgid "Wi-Fi"
 msgstr "Wi-Fi"
 
 #: src/render.c
+msgid "VPN"
+msgstr "VPN"
+
+#: src/render.c
 #, c-format
 msgid "RAM %d%%"
 msgstr "RAM %d%%"
-
-#: src/render.c
-msgid "CPU --%"
-msgstr "CPU --%"
 
 #: src/render.c
 #, c-format
@@ -154,9 +161,23 @@ msgid "CPU %d%%"
 msgstr "CPU %d%%"
 
 #: src/render.c
+msgid "CPU --%"
+msgstr "CPU --%"
+
+#: src/render.c
 #, c-format
 msgid "Temp %d°C"
 msgstr "온도 %d°C"
+
+#: src/render.c
+#, c-format
+msgid "Battery %d%% charging"
+msgstr "배터리 %d%% (충전 중)"
+
+#: src/render.c
+#, c-format
+msgid "Battery %d%%"
+msgstr "배터리 %d%%"
 
 #: src/render.c
 #, c-format
@@ -185,3 +206,8 @@ msgstr "%H:%M"
 #: src/render.c
 msgid "%A, %-d %B %Y"
 msgstr "%Y년 %-m월 %-d일 %A"
+
+#: src/system.c
+#, c-format
+msgid "pacpeek: invalid late window \"%s\" (use HH:MM-HH:MM or off)\n"
+msgstr "pacpeek: 잘못된 야간 시간대 \"%s\" (HH:MM-HH:MM 또는 off 사용)\n"

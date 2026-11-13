@@ -45,8 +45,11 @@ int query_start(void) {
     /* Its own process group, so cancelling kills wpctl and friends along with the shell. */
     posix_spawnattr_t attr;
     posix_spawnattr_init(&attr);
-    posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETPGROUP);
+    sigset_t no_signals;
+    sigemptyset(&no_signals);
+    posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETPGROUP | POSIX_SPAWN_SETSIGMASK);
     posix_spawnattr_setpgroup(&attr, 0);
+    posix_spawnattr_setsigmask(&attr, &no_signals);
 
     char *argv[] = { "sh", "-c", (char *)script, NULL };
     int err = posix_spawn(&child, "/bin/sh", &actions, &attr, argv, environ);

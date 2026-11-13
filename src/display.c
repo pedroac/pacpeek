@@ -2,20 +2,71 @@
 #include "display.h"
 #include "i18n.h"
 #include "input.h"
+#include "fractional-scale-v1-client-protocol.h"
 #include "single-pixel-buffer-v1-client-protocol.h"
 #include "viewporter-client-protocol.h"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 #include <errno.h>
 #include <poll.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
 /* The background glow is rendered at 1/GLOW_DOWNSCALE size and scaled up by the compositor. */
 #define GLOW_DOWNSCALE 8
+#define MAX_SCALE 8.0
 
+static void set_scale(Display *dpy, double scale) {
+    if (scale < 1) scale = 1;
+    if (scale > MAX_SCALE) scale = MAX_SCALE;
+    if (scale == dpy->scale) return;
+    dpy->scale = scale;
+    dpy->dirty = true;
+}
+
+static void fractional_preferred_scale(void *data, struct wp_fractional_scale_v1 *fs,
+                                       uint32_t scale) {
+    (void)fs;
+    set_scale(data, scale / 120.0);
+}
+
+static const struct wp_fractional_scale_v1_listener fractional_scale_listener = {
+    .preferred_scale = fractional_preferred_scale,
+};
+
+/* Compositors without fractional scaling still report an integer one. */
+static void surface_preferred_buffer_scale(void *data, struct wl_surface *surface,
+                                           int32_t factor) {
+    Display *dpy = data;
+    (void)surface;
+    if (!dpy->fractional_scale) set_scale(dpy, factor);
+}
+
+static void surface_enter(void *data, struct wl_surface *s, struct wl_output *o) {
+    (void)data; (void)s; (void)o;
+}
+
+static void surface_leave(void *data, struct wl_surface *s, struct wl_output *o) {
+    (void)data; (void)s; (void)o;
+}
+
+static void surface_preferred_buffer_transform(void *data, struct wl_surface *s, uint32_t t) {
+    (void)data; (void)s; (void)t;
+}
+
+static const struct wl_surface_listener surface_listener = {
+    .enter = surface_enter,
+    .leave = surface_leave,
+    .preferred_buffer_scale = surface_preferred_buffer_scale,
+    .preferred_buffer_transform = surface_preferred_buffer_transform,
+};
+
+/* libwayland aborts when an event reaches a listener entry that is NULL, so every event of an
+ * interface needs a function, even the ones that are ignored. */
 static void seat_capabilities(void *data, struct wl_seat *seat, uint32_t caps) {
     Display *dpy = data;
     bool has_keyboard = caps & WL_SEAT_CAPABILITY_KEYBOARD;
@@ -46,13 +97,15 @@ static void registry_global(void *data, struct wl_registry *registry,
     Display *dpy = data;
 
     if (strcmp(interface, wl_compositor_interface.name) == 0) {
-        dpy->compositor = BIND(wl_compositor, 4);
+        dpy->compositor = BIND(wl_compositor, 6);
     } else if (strcmp(interface, wl_subcompositor_interface.name) == 0) {
         dpy->subcompositor = BIND(wl_subcompositor, 1);
     } else if (strcmp(interface, wl_shm_interface.name) == 0) {
         dpy->shm = BIND(wl_shm, 1);
     } else if (strcmp(interface, wp_viewporter_interface.name) == 0) {
         dpy->viewporter = BIND(wp_viewporter, 1);
+    } else if (strcmp(interface, wp_fractional_scale_manager_v1_interface.name) == 0) {
+        dpy->fractional_scale_manager = BIND(wp_fractional_scale_manager_v1, 1);
     } else if (strcmp(interface, wp_single_pixel_buffer_manager_v1_interface.name) == 0) {
         dpy->single_pixel = BIND(wp_single_pixel_buffer_manager_v1, 1);
     } else if (strcmp(interface, zwlr_layer_shell_v1_interface.name) == 0) {
@@ -62,7 +115,7 @@ static void registry_global(void *data, struct wl_registry *registry,
         dpy->seat = BIND(wl_seat, 5);
         wl_seat_add_listener(dpy->seat, &seat_listener, dpy);
     } else if (strcmp(interface, wl_output_interface.name) == 0 &&
-               dpy->output_global_count < 16) {
+               dpy->output_global_count < MAX_OUTPUTS) {
         dpy->output_globals[dpy->output_global_count].name = name;
         dpy->output_globals[dpy->output_global_count].version = version;
         dpy->output_global_count++;
@@ -78,44 +131,42 @@ static const struct wl_registry_listener registry_listener = {
     .global_remove = registry_global_remove,
 };
 
+/* The glow is smooth, so it is drawn at a fraction of the output size and the compositor
+ * scales it up: a full-size ARGB buffer would cost ~8 MB at 1080p. */
+static void draw_glow(Display *dpy, uint32_t width, uint32_t height) {
+    int w = ((int)width + GLOW_DOWNSCALE - 1) / GLOW_DOWNSCALE;
+    int h = ((int)height + GLOW_DOWNSCALE - 1) / GLOW_DOWNSCALE;
+    cairo_t *cr = panel_begin(&dpy->background_panel, w, h);
+    if (!cr) return;
+
+    double cx = w / 2.0;
+    double cy = h / 2.0;
+    double outer_radius = (w < h ? w : h) * 0.5;
+
+    /* Subtle black glow: opaque in the center, fully transparent at the edges. */
+    cairo_pattern_t *gradient = cairo_pattern_create_radial(cx, cy, 0.0, cx, cy, outer_radius);
+    cairo_pattern_add_color_stop_rgba(gradient, 0.0, 0.0, 0.0, 0.0, 1.0);
+    cairo_pattern_add_color_stop_rgba(gradient, 1.0, 0.0, 0.0, 0.0, 0.0);
+    cairo_set_source(cr, gradient);
+    cairo_paint(cr);
+    cairo_pattern_destroy(gradient);
+
+    panel_end(&dpy->background_panel, cr, 0, 0, (int)width, (int)height);
+}
+
 static void layer_surface_configure(void *data, struct zwlr_layer_surface_v1 *surface,
                                     uint32_t serial, uint32_t width, uint32_t height) {
     Display *dpy = data;
     zwlr_layer_surface_v1_ack_configure(surface, serial);
 
+    /* A zero size is not a valid viewport destination; wait for a real one. */
+    if (width == 0 || height == 0) return;
+
     if (width != dpy->width || height != dpy->height) {
         dpy->width = width;
         dpy->height = height;
         wp_viewport_set_destination(dpy->viewport, width, height);
-
-        /* The glow is smooth, so it is drawn at a fraction of the output size and the
-         * compositor scales it up: a full-size ARGB buffer would cost ~8 MB at 1080p. */
-        int w = ((int)width + GLOW_DOWNSCALE - 1) / GLOW_DOWNSCALE;
-        int h = ((int)height + GLOW_DOWNSCALE - 1) / GLOW_DOWNSCALE;
-        cairo_t *cr_bg = panel_begin(&dpy->background_panel, w, h);
-        if (cr_bg) {
-            double cx = w / 2.0;
-            double cy = h / 2.0;
-            double outer_radius = (w < h ? w : h) * 0.5;
-
-            cairo_pattern_t *rad_grad = cairo_pattern_create_radial(
-                cx, cy, 0.0,
-                cx, cy, outer_radius
-            );
-            // Subtle black glow: opaque in center, fully transparent at edges
-            cairo_pattern_add_color_stop_rgba(rad_grad, 0.0, 0.0, 0.0, 0.0, 1.0);
-            cairo_pattern_add_color_stop_rgba(rad_grad, 1.0, 0.0, 0.0, 0.0, 0.0);
-
-            cairo_set_source(cr_bg, rad_grad);
-            cairo_paint(cr_bg);
-            cairo_pattern_destroy(rad_grad);
-
-            if (!dpy->glow_viewport)
-                dpy->glow_viewport = wp_viewporter_get_viewport(
-                    dpy->viewporter, dpy->background_panel.surface);
-            wp_viewport_set_destination(dpy->glow_viewport, width, height);
-            panel_end(&dpy->background_panel, cr_bg, 0, 0);
-        }
+        draw_glow(dpy, width, height);
     }
 
     wl_surface_attach(dpy->surface, dpy->background, 0, 0);
@@ -182,7 +233,7 @@ static const struct wl_output_listener output_listener = {
 };
 
 static struct wl_output *find_output(Display *dpy, const char *wanted) {
-    OutputInfo infos[16] = {0};
+    OutputInfo infos[MAX_OUTPUTS] = {0};
     int count = 0;
 
     for (int i = 0; i < dpy->output_global_count; i++) {
@@ -203,6 +254,11 @@ static struct wl_output *find_output(Display *dpy, const char *wanted) {
     if (!found) {
         fprintf(stderr, _("pacpeek: monitor \"%s\" not found; available:"), wanted);
         for (int i = 0; i < count; i++) fprintf(stderr, " %s", infos[i].name);
+        /* Output names need wl_output version 4; older outputs can't be matched. */
+        int unnamed = dpy->output_global_count - count;
+        if (unnamed > 0)
+            fprintf(stderr, _(" (%d more cannot be named: this compositor's outputs are too old)"),
+                    unnamed);
         fprintf(stderr, "\n");
     }
     return found;
@@ -213,6 +269,7 @@ Display *display_create(const char *output_name, KeyboardFocus focus,
     Display *dpy = calloc(1, sizeof(Display));
     if (!dpy) return NULL;
     dpy->wants_keyboard = focus != KEYBOARD_NONE;
+    dpy->scale = 1;
 
     dpy->display = wl_display_connect(NULL);
     if (!dpy->display) {
@@ -236,6 +293,12 @@ Display *display_create(const char *output_name, KeyboardFocus focus,
         dpy->single_pixel, to_u32(r * a), to_u32(g * a), to_u32(b * a), to_u32(a));
 
     dpy->surface = wl_compositor_create_surface(dpy->compositor);
+    wl_surface_add_listener(dpy->surface, &surface_listener, dpy);
+    if (dpy->fractional_scale_manager) {
+        dpy->fractional_scale = wp_fractional_scale_manager_v1_get_fractional_scale(
+            dpy->fractional_scale_manager, dpy->surface);
+        wp_fractional_scale_v1_add_listener(dpy->fractional_scale, &fractional_scale_listener, dpy);
+    }
     dpy->viewport = wp_viewporter_get_viewport(dpy->viewporter, dpy->surface);
     dpy->layer_surface = zwlr_layer_shell_v1_get_layer_surface(
         dpy->layer_shell, dpy->surface, dpy->output,
@@ -262,9 +325,8 @@ Display *display_create(const char *output_name, KeyboardFocus focus,
                                       : ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
     zwlr_layer_surface_v1_add_listener(dpy->layer_surface, &layer_surface_listener, dpy);
 
-    // --- Initialize background gradient panel first so it sits at the bottom of the stack ---
+    /* The background panel is created first so it sits at the bottom of the stack. */
     panel_init(&dpy->background_panel, dpy);
-    // --------------------------------------------------------------------------------------
 
     wl_surface_commit(dpy->surface);
 
@@ -275,14 +337,19 @@ Display *display_create(const char *output_name, KeyboardFocus focus,
             return NULL;
         }
     }
+    /* Compositors may only announce the scale once the surface is mapped. */
+    wl_display_roundtrip(dpy->display);
     return dpy;
 }
 
 void display_destroy(Display *dpy) {
     if (!dpy) return;
 
-    if (dpy->glow_viewport) wp_viewport_destroy(dpy->glow_viewport);
     panel_finish(&dpy->background_panel);
+
+    if (dpy->fractional_scale) wp_fractional_scale_v1_destroy(dpy->fractional_scale);
+    if (dpy->fractional_scale_manager)
+        wp_fractional_scale_manager_v1_destroy(dpy->fractional_scale_manager);
 
     if (dpy->layer_surface) zwlr_layer_surface_v1_destroy(dpy->layer_surface);
     if (dpy->viewport) wp_viewport_destroy(dpy->viewport);
@@ -328,7 +395,12 @@ int display_dispatch(Display *dpy, int timeout_ms, int extra_fd) {
         { .fd = wl_display_get_fd(d), .events = POLLIN | (need_flush ? POLLOUT : 0) },
         { .fd = extra_fd, .events = POLLIN },
     };
-    int ret = poll(fds, extra_fd >= 0 ? 2 : 1, timeout_ms);
+    /* The caller keeps SIGINT/SIGTERM blocked; ppoll unblocks them atomically while waiting,
+     * so a signal can't slip in between checking the quit flag and going to sleep. */
+    struct timespec timeout = { timeout_ms / 1000, (timeout_ms % 1000) * 1000000L };
+    sigset_t unblocked;
+    sigemptyset(&unblocked);
+    int ret = ppoll(fds, extra_fd >= 0 ? 2 : 1, &timeout, &unblocked);
     if (ret < 0) {
         wl_display_cancel_read(d);
         return errno == EINTR ? 0 : -1;
@@ -407,6 +479,7 @@ void panel_init(Panel *panel, Display *dpy) {
     panel->subsurface = wl_subcompositor_get_subsurface(dpy->subcompositor,
                                                         panel->surface, dpy->surface);
     wl_subsurface_set_desync(panel->subsurface);
+    panel->viewport = wp_viewporter_get_viewport(dpy->viewporter, panel->surface);
 
     struct wl_region *empty = wl_compositor_create_region(dpy->compositor);
     wl_surface_set_input_region(panel->surface, empty);
@@ -415,6 +488,7 @@ void panel_init(Panel *panel, Display *dpy) {
 
 void panel_finish(Panel *panel) {
     panel_free_buffer(panel);
+    if (panel->viewport) wp_viewport_destroy(panel->viewport);
     if (panel->subsurface) wl_subsurface_destroy(panel->subsurface);
     if (panel->surface) wl_surface_destroy(panel->surface);
     memset(panel, 0, sizeof(*panel));
@@ -435,9 +509,15 @@ cairo_t *panel_begin(Panel *panel, int width, int height) {
     return cr;
 }
 
-void panel_end(Panel *panel, cairo_t *cr, int x, int y) {
+void panel_end(Panel *panel, cairo_t *cr, int x, int y, int dest_w, int dest_h) {
     cairo_destroy(cr);
     cairo_surface_flush(panel->image);
+
+    if (dest_w != panel->dest_w || dest_h != panel->dest_h) {
+        panel->dest_w = dest_w;
+        panel->dest_h = dest_h;
+        wp_viewport_set_destination(panel->viewport, dest_w, dest_h);
+    }
 
     wl_surface_attach(panel->surface, panel->buffer, 0, 0);
     wl_surface_damage_buffer(panel->surface, 0, 0, panel->width, panel->height);

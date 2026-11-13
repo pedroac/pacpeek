@@ -5,7 +5,7 @@
 
 A quick hotkey-powered panel to peek at system essentials on demand, without needing a permanent status bar.
 
-`pacpeek` was built for tiling window managers like Hyprland to optimize how system status is delivered:
+`pacpeek` was built for tiling window managers like Hyprland and Sway to optimize how system status is delivered:
 
 * **No configuration overhead:** Skip the upfront setup and complex styling layers (CSS, JavaScript, heavy configs). It works cleanly and readably right out of the box.
 * **Reliability & clean presentation:** Built to offer a polished layout that doesn't suffer from stability issues or layout clutter.
@@ -34,6 +34,15 @@ If you prefer a toggle keybind (press to open, press again to close):
 hl.bind("SUPER + Control_L", hl.dsp.exec_cmd("pacpeek --mode toggle --toggle"))
 ```
 
+In Sway (`~/.config/sway/config`):
+
+```
+# hold to peek, let go to close
+bindsym Mod4+Control_L exec pacpeek --mode hold
+# or, instead: press to open, press again to close
+# bindsym Mod4+Control_L exec pacpeek --mode toggle --toggle
+```
+
 If you follow those examples, make sure to press and hold the SUPER key first, then press Left Ctrl. It won't work if you press Left Ctrl first.
 
 ## Usage
@@ -52,11 +61,11 @@ pacpeek [--mode hold|toggle|external] [--timeout SECONDS] [--monitor NAME] [--to
 
 ## Platform
 
-Linux only, tested on **Arch Linux with Hyprland**. It will probably not work elsewhere as it is: fork it and adapt it ([details](docs/platform.md)).
+Linux only, tested on **Arch Linux with Hyprland and Sway**. It will probably not work elsewhere as it is: fork it and adapt it ([details](docs/platform.md)).
 
 ## Documentation
 
-- [Usage](docs/usage.md): modes, options, keyboard focus, Hyprland binds, release-to-close
+- [Usage](docs/usage.md): modes, options, keyboard focus, Hyprland and Sway binds, release-to-close
 - [Configuration](docs/configuration.md): config file, environment variables, late-night clock, colors, fonts
 - [Translations](docs/translations.md): languages, fonts per language, adding a language
 - [Building and installing](docs/building.md): dependencies, install options, minimal build
